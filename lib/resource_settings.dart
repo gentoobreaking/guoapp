@@ -12,12 +12,15 @@ class ResourceSettings {
     this.proxyUrl = '',
     this.catalogConcurrency = 3,
     this.downloadConcurrency = 2,
+    this.downloadSegmentConcurrency = 4,
+    this.prefetchLimit = 4194304,
     this.downloadBySource = false,
     this.warning = '',
     this.systemProxyStatus = '',
   });
   final String proxyMode, proxyUrl, warning, systemProxyStatus;
-  final int catalogConcurrency, downloadConcurrency;
+  final int catalogConcurrency, downloadConcurrency, downloadSegmentConcurrency;
+  final int prefetchLimit;
   final bool downloadBySource;
 
   factory ResourceSettings.fromJson(Map<String, dynamic> data) =>
@@ -26,6 +29,10 @@ class ResourceSettings {
         proxyUrl: data['proxyUrl'] as String? ?? '',
         catalogConcurrency: intValue(data['catalogConcurrency']),
         downloadConcurrency: intValue(data['downloadConcurrency']),
+        downloadSegmentConcurrency: intValue(
+          data['downloadSegmentConcurrency'],
+        ),
+        prefetchLimit: intValue(data['prefetchLimit']),
         downloadBySource: data['downloadBySource'] == true,
         warning: data['warning'] as String? ?? '',
         systemProxyStatus: data['systemProxyStatus'] as String? ?? '',
@@ -36,12 +43,17 @@ class ResourceSettings {
     String? proxyUrl,
     int? catalogConcurrency,
     int? downloadConcurrency,
+    int? downloadSegmentConcurrency,
+    int? prefetchLimit,
     bool? downloadBySource,
   }) => ResourceSettings(
     proxyMode: proxyMode ?? this.proxyMode,
     proxyUrl: proxyUrl ?? this.proxyUrl,
     catalogConcurrency: catalogConcurrency ?? this.catalogConcurrency,
     downloadConcurrency: downloadConcurrency ?? this.downloadConcurrency,
+    downloadSegmentConcurrency:
+        downloadSegmentConcurrency ?? this.downloadSegmentConcurrency,
+    prefetchLimit: prefetchLimit ?? this.prefetchLimit,
     downloadBySource: downloadBySource ?? this.downloadBySource,
     warning: warning,
     systemProxyStatus: systemProxyStatus,
@@ -52,6 +64,8 @@ class ResourceSettings {
     'proxyUrl': proxyUrl,
     'catalogConcurrency': catalogConcurrency,
     'downloadConcurrency': downloadConcurrency,
+    'downloadSegmentConcurrency': downloadSegmentConcurrency,
+    'prefetchLimit': prefetchLimit,
     'downloadBySource': downloadBySource,
   };
 }

@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../models.dart';
+import '../downloads/download_actions.dart';
 import '../../playback_preferences.dart';
 import '../../playback_session.dart';
 import '../app_scope.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
+import '../widgets/focus_ring.dart';
 import '../widgets/motion/motion_widgets.dart';
 import 'danmaku_overlay.dart';
 import 'fade_presence.dart';
@@ -48,6 +51,7 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
   final _previous = FocusNode();
   final _play = FocusNode();
   final _next = FocusNode();
+  final _download = FocusNode();
   final _danmaku = FocusNode();
   final _speed = FocusNode();
   final _quality = FocusNode();
@@ -96,6 +100,7 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
       _previous,
       _play,
       _next,
+      _download,
       _danmaku,
       _speed,
       _quality,
@@ -160,6 +165,16 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
     _hideTimer?.cancel();
     _surface.requestFocus();
     setState(() => _visible = false);
+  }
+
+  /// 打开模态对话框期间暂停控制栏自动隐藏，避免焦点被暗中收走。
+  Future<T?> _holdControls<T>(Future<T?> Function() dialog) async {
+    _hideTimer?.cancel();
+    try {
+      return await dialog();
+    } finally {
+      if (mounted && _visible && _menu == null) _scheduleHide();
+    }
   }
 
   void _reveal({bool force = false}) {
@@ -234,10 +249,219 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
     }
   }
 
+  Future<void> _downloadEpisode() async {
+    final episodes = _session.detail.episodes;
+    if (episodes.isEmpty) return;
+    final index = _session.index;
+    final remaining = [
+      for (var i = index + 1; i < episodes.length; i++) episodes[i],
+    ];
+    final options = <(String, bool, Future<void> Function())>[
+      (
+        '下载当前集 · 第 ${episodes[index].number} 集',
+        true,
+        () => _startDownload([episodes[index]]),
+      ),
+      (
+        index > 0
+            ? '下载上一集 · 第 ${episodes[index - 1].number} 集'
+            : '下载上一集 · 已是第一集',
+        index > 0,
+        () => _startDownload([episodes[index - 1]]),
+      ),
+      (
+        index + 1 < episodes.length
+            ? '下载下一集 · 第 ${episodes[index + 1].number} 集'
+            : '下载下一集 · 已是最后一集',
+        index + 1 < episodes.length,
+        () => _startDownload([episodes[index + 1]]),
+      ),
+      (
+        remaining.isEmpty
+            ? '下载剩余未看 · 没有剩余'
+            : '下载剩余未看 · ${remaining.length} 集',
+        remaining.isNotEmpty,
+        () => _startDownload(remaining),
+      ),
+      (
+        '下载指定集数范围 · 共 ${episodes.length} 集',
+        episodes.length > 1,
+        () => _downloadRange(),
+      ),
+    ];
+    final selected = await _holdControls(
+      () => showDialog<int>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('下载选项'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (position, option) in options.indexed)
+                  TileFocus(
+                    builder: (focusNode) => ListTile(
+                      focusNode: focusNode,
+                      autofocus:
+                          option.$2 &&
+                          !options
+                              .take(position)
+                              .any((candidate) => candidate.$2),
+                      title: Text(
+                        option.$1,
+                        style: TextStyle(
+                          color:
+                              option.$2
+                                  ? null
+                                  : Theme.of(context).disabledColor,
+                        ),
+                      ),
+                      onTap: option.$2
+                          ? () => Navigator.pop(context, position)
+                          : null,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    await options[selected].$3();
+  }
+
+  Future<void> _startDownload(List<Episode> targets) async {
+    if (!mounted || targets.isEmpty) return;
+    final store = _session.store;
+    var selected = targets;
+    if (!store.downloadPreferences.includeVip) {
+      final skipped = targets.where((episode) => episode.vip).length;
+      selected = [for (final episode in targets) if (!episode.vip) episode];
+      if (selected.isEmpty) {
+        showMessage(context, '所选集均为 VIP 集，可在下载设置开启“默认包含 VIP 集”');
+        return;
+      }
+      if (skipped > 0) showMessage(context, '已跳过 $skipped 个 VIP 集');
+    }
+    if (selected.length > 20) {
+      final confirmed = await _holdControls(
+        () => showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('确认批量下载'),
+            content: Text('即将加入 ${selected.length} 集下载，确认继续？'),
+            actions: [
+              FocusRing(
+                radius: 20,
+                child: TextButton(
+                  autofocus: true,
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('取消'),
+                ),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('继续'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
+    try {
+      await downloadEpisodes(context, store, _session.detail, selected);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('下载失败：$error')));
+    }
+  }
+
+  Future<void> _downloadRange() async {
+    final episodes = _session.detail.episodes;
+    final start = await _pickEpisode('选择起始集', episodes, _session.index);
+    if (!mounted || start == null) return;
+    final end = await _pickEpisode(
+      '选择结束集',
+      episodes,
+      episodes.indexOf(start).clamp(0, episodes.length - 1),
+    );
+    if (!mounted || end == null) return;
+    if (end.number < start.number) {
+      showMessage(context, '结束集不能早于起始集');
+      return;
+    }
+    await _startDownload([
+      for (final episode in episodes)
+        if (episode.number >= start.number && episode.number <= end.number)
+          episode,
+    ]);
+  }
+
+  Future<Episode?> _pickEpisode(
+    String title,
+    List<Episode> episodes,
+    int initial,
+  ) async {
+    const extent = 56.0;
+    const height = 380.0;
+    // 固定列高 + 预滚动，保证 autofocus 的行一定被构建且可见。
+    final maxOffset = episodes.length * extent - height;
+    final controller = ScrollController(
+      initialScrollOffset: ((initial - 2) * extent).clamp(
+        0.0,
+        maxOffset < 0 ? 0.0 : maxOffset,
+      ),
+    );
+    try {
+      return await _holdControls(
+        () => showDialog<Episode>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: SizedBox(
+              width: 300,
+              height: height,
+              child: ListView.builder(
+                controller: controller,
+                itemExtent: extent,
+                itemCount: episodes.length,
+                itemBuilder: (context, index) => ListTile(
+                  autofocus: index == initial,
+                  title: Text(episodes[index].title),
+                  onTap: () => Navigator.pop(context, episodes[index]),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
   List<FocusNode> get _row => [
     _previous,
     _play,
     _next,
+    _download,
     if (_session.danmakuSupported) _danmaku,
     _speed,
     _quality,
@@ -247,6 +471,7 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
   bool _enabled(FocusNode node) =>
       node == _previous && _session.hasPrevious ||
       node == _next && _session.hasNext ||
+      node == _download && _session.ready ||
       node == _speed && _session.ready ||
       node == _quality && _session.ready && !_session.local ||
       node == _play ||
@@ -565,6 +790,12 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
                 strong: true,
               ),
               _round(_next, Icons.skip_next_rounded, '下一集', () => _episode(1)),
+              _round(
+                _download,
+                Icons.download_rounded,
+                '下载',
+                () => unawaited(_downloadEpisode()),
+              ),
               const Spacer(),
               if (_session.danmakuSupported)
                 _pill(

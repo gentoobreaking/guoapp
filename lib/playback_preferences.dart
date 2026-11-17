@@ -93,6 +93,8 @@ class PlaybackPreferences {
     this.danmakuSpeed = 1,
     this.danmakuWords = const [],
     this.preload = true,
+    this.preloadDownload = false,
+    this.preloadCount = 1,
     this.televisionDecoder = TelevisionDecoder.optimized,
     this.preopen,
     this.doubleTapSeek = true,
@@ -126,6 +128,8 @@ class PlaybackPreferences {
       '${boostSpeed % 1 == 0 ? boostSpeed.toInt() : boostSpeed} 倍速';
   final List<String> danmakuWords;
   final bool preload;
+  final bool preloadDownload;
+  final int preloadCount;
   final TelevisionDecoder televisionDecoder;
   final bool? preopen;
   final bool doubleTapSeek;
@@ -158,6 +162,8 @@ class PlaybackPreferences {
     double? boostSpeed,
     List<String>? danmakuWords,
     bool? preload,
+    bool? preloadDownload,
+    int? preloadCount,
     TelevisionDecoder? televisionDecoder,
     bool? preopen,
     bool? doubleTapSeek,
@@ -187,6 +193,8 @@ class PlaybackPreferences {
     boostSpeed: boostSpeed ?? this.boostSpeed,
     danmakuWords: danmakuWords ?? this.danmakuWords,
     preload: preload ?? this.preload,
+    preloadDownload: preloadDownload ?? this.preloadDownload,
+    preloadCount: preloadCount ?? this.preloadCount,
     televisionDecoder: televisionDecoder ?? this.televisionDecoder,
     preopen: preopen ?? this.preopen,
     doubleTapSeek: doubleTapSeek ?? this.doubleTapSeek,
@@ -218,6 +226,8 @@ class PlaybackPreferences {
     'boostSpeed': boostSpeed,
     'danmakuWords': danmakuWords,
     'preload': preload,
+    'preloadDownload': preloadDownload,
+    'preloadCount': preloadCount,
     'televisionDecoder': televisionDecoder.name,
     if (preopen != null) 'preopen': preopen,
     'doubleTapSeek': doubleTapSeek,
@@ -240,6 +250,8 @@ class PlaybackPreferences {
     final autoAdvance = value['autoAdvance'] as bool? ?? true;
     final danmaku = value['danmaku'] as bool? ?? true;
     final preload = value['preload'] as bool? ?? true;
+    final preloadDownload = value['preloadDownload'] as bool? ?? false;
+    final preloadCount = (value['preloadCount'] as int? ?? 1).clamp(1, 5);
     final danmakuScale = (value['danmakuScale'] as num? ?? 1).toDouble();
     final danmakuColor = value['danmakuColor'] as int? ?? 0xFFFFFFFF;
     if (!playbackSpeeds.contains(speed) || quality < 0 || quality > 4320) {
@@ -277,6 +289,8 @@ class PlaybackPreferences {
       ),
       danmakuWords: normalizeDanmakuWords(value['danmakuWords']),
       preload: preload,
+      preloadDownload: preloadDownload,
+      preloadCount: preloadCount,
       televisionDecoder:
           TelevisionDecoder.values.asNameMap()[value['televisionDecoder']] ??
           TelevisionDecoder.optimized,

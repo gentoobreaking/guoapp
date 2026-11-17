@@ -30,7 +30,8 @@ func (engine *nativeEngine) nativePreload(ctx context.Context, input nativeInput
 	engine.mu.Unlock()
 	if exists && stream != nil && choice.streamSession != "" {
 		warming, cancel := context.WithTimeout(ctx, 6*time.Second)
-		plan.PrefetchedBytes = stream.nativePrefetch(warming, choice.streamSession, plan.URL, input.Quality)
+		limit := int64(engine.resourceSettings().normalize().PrefetchLimit)
+		plan.PrefetchedBytes = stream.nativePrefetch(warming, choice.streamSession, plan.URL, input.Quality, limit)
 		cancel()
 	}
 	if err := ctx.Err(); err != nil {
@@ -40,7 +41,7 @@ func (engine *nativeEngine) nativePreload(ctx context.Context, input nativeInput
 	return plan, nil
 }
 
-func (stream *nativeStreamServer) nativePrefetch(ctx context.Context, token, entry string, quality int) int64 {
+func (stream *nativeStreamServer) nativePrefetch(ctx context.Context, token, entry string, quality int, limit int64) int64 {
 	stream.mu.Lock()
 	session := stream.sessions[token]
 	stream.mu.Unlock()
@@ -51,7 +52,7 @@ func (stream *nativeStreamServer) nativePrefetch(ctx context.Context, token, ent
 	defer cancel()
 	stop := context.AfterFunc(session.ctx, cancel)
 	defer stop()
-	remaining, requests := int64(nativePreloadLimit), 0
+	remaining, requests := max(1<<20, limit), 0
 	visited := map[string]bool{}
 	var warm func(string, int) bool
 	warm = func(local string, depth int) bool {
@@ -158,7 +159,7 @@ func (stream *nativeStreamServer) nativePrefetch(ctx context.Context, token, ent
 		return true
 	}
 	warm(entry, 0)
-	return nativePreloadLimit - remaining
+	return max(1<<20, limit) - remaining
 }
 
 var nativeContentRangePattern = regexp.MustCompile(`^bytes ([0-9]+)-([0-9]+)/([0-9]+)$`)

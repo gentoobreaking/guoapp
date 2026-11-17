@@ -183,6 +183,7 @@ class _DetailPageState extends State<DetailPage> {
   final _televisionDetail = GlobalKey<TelevisionDetailState>();
   bool _entered = false;
   PlaybackHandle? _watched;
+  final _probed = <String>{};
   late bool _autoplayPending = widget.autoplay;
   late bool _curtain = widget.autoplay;
 
@@ -257,8 +258,38 @@ class _DetailPageState extends State<DetailPage> {
     final seasons = _details!.seasons;
     _handle?.session.syncSeasons(seasons);
     _watched?.session.syncSeasons(seasons);
+    _probeQuality();
     _preopen();
     unawaited(_autoplay());
+  }
+
+  /// 没看过的剧集在打开详情时后台解析一次第一集，记录源站画质供列表筛选。
+  void _probeQuality() {
+    final details = _details!;
+    if (!_ready || !details.allowed) return;
+    final drama = details.drama;
+    if (!_probed.add(drama.id)) return;
+    if (widget.store.dramaQuality(drama.source, drama.id) != null) return;
+    final repository = AppScope.of(context).repository;
+    unawaited(() async {
+      try {
+        final plan = await repository.resolve(
+          drama,
+          details.episodes.first,
+          quality: widget.store.playbackPreferences.quality,
+        );
+        if (plan == null) return;
+        widget.store.rememberDramaQuality(
+          drama.source,
+          drama.id,
+          plan.qualities.fold(
+            plan.quality,
+            (best, quality) => quality > best ? quality : best,
+          ),
+        );
+        unawaited(repository.release(plan.session).catchError((Object _) {}));
+      } catch (_) {}
+    }());
   }
 
   Future<void> _autoplay() async {

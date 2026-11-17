@@ -54,19 +54,20 @@ type nativeDownloadResult struct {
 }
 
 type nativeDownloads struct {
-	mu          sync.Mutex
-	root        string
-	engine      *nativeEngine
-	jobs        map[string]*nativeDownloadRecord
-	active      map[string]context.CancelFunc
-	converting  map[string]bool
-	moving      bool
-	loadErr     error
-	workers     sync.WaitGroup
-	lastSaved   time.Time
-	concurrency int
-	bySource    bool
-	resolve     func(context.Context, nativeDownloadJob) (ProviderMedia, error)
+	mu                 sync.Mutex
+	root               string
+	engine             *nativeEngine
+	jobs               map[string]*nativeDownloadRecord
+	active             map[string]context.CancelFunc
+	converting         map[string]bool
+	moving             bool
+	loadErr            error
+	workers            sync.WaitGroup
+	lastSaved          time.Time
+	concurrency        int
+	segmentConcurrency int
+	bySource           bool
+	resolve            func(context.Context, nativeDownloadJob) (ProviderMedia, error)
 }
 
 func nativeDownloadID(drama string, episode int) string {
@@ -87,8 +88,9 @@ func (manager *nativeDownloads) unarchivedCountLocked() int {
 func newNativeDownloads(engine *nativeEngine) *nativeDownloads {
 	manager := &nativeDownloads{root: nativeDownloadLocation(engine.directory, engine.defaultDownloads), engine: engine,
 		jobs: map[string]*nativeDownloadRecord{}, active: map[string]context.CancelFunc{}, converting: map[string]bool{}}
-	settings := engine.resourceSettings()
+	settings := engine.resourceSettings().normalize()
 	manager.concurrency, manager.bySource = settings.DownloadConcurrency, settings.DownloadBySource
+	manager.segmentConcurrency = max(1, settings.DownloadSegmentConcurrency)
 	manager.resolve = func(ctx context.Context, job nativeDownloadJob) (ProviderMedia, error) {
 		return engine.downloader.resolveProviderMedia(ctx, Task{
 			DramaID: job.Drama.ID, DramaTitle: job.Drama.Title, Chapter: job.Chapter, Index: job.Index})

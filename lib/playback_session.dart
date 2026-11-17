@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 
+import 'app_device.dart';
 import 'core_bridge.dart';
 import 'danmaku_controller.dart';
 import 'danmaku_style.dart';
@@ -15,6 +16,9 @@ import 'playback_loader.dart';
 import 'playback_preferences.dart';
 import 'playback_preloader.dart';
 import 'playback_recovery.dart';
+
+/// 单次解析播放地址的看门狗上限；超时后取消旧请求自动重试一次。
+const _resolveTimeout = Duration(seconds: 25);
 
 Size? videoDisplaySize(VideoParams parameters) {
   final width = (parameters.dw ?? 0) > 0 ? parameters.dw! : parameters.w ?? 0;
@@ -61,6 +65,7 @@ class PlaybackSession extends ChangeNotifier {
       ..setBlockedWords(preferences.danmakuWords);
     store.addListener(_accessChanged);
     store.addListener(_syncBlockedWords);
+    AppDevice.addDeviceHandler(_onDeviceCall);
     _bind();
     _saveTimer = Timer.periodic(
       const Duration(seconds: 5),
@@ -149,6 +154,8 @@ class PlaybackSession extends ChangeNotifier {
   late final DanmakuController danmaku;
   late final PlaybackLoader _loader;
   late final PlaybackPreloader _preloader;
+  String? _autoDownloadDrama;
+  final Set<int> _autoDownloadQueued = {};
   final _recovery = PlaybackRecovery();
   final _health = PlaybackHealth();
   final int _epoch;
@@ -178,6 +185,7 @@ class PlaybackSession extends ChangeNotifier {
   bool _acceptErrors = false;
   bool _foreground = true;
   bool _playIntent = true;
+  bool _focusPaused = false;
   bool _pendingError = false;
   bool _boosting = false;
   bool _boostLocked = false;
@@ -235,7 +243,9 @@ class PlaybackSession extends ChangeNotifier {
   bool get sleepAtEpisodeEnd => _sleepAtEpisodeEnd;
   int get quality => _quality;
   bool get local => _plan?.local == true;
-  List<int> get qualities => _plan?.qualities ?? const [];
+  /// 清晰度菜单选项：只列出 720P 及以上；「自动」仍会回退到低画质，不受影响。
+  List<int> get qualities =>
+      (_plan?.qualities ?? const []).where((quality) => quality >= 720).toList();
   bool get danmakuSupported => SourceSite.byId(detail.drama.source).danmaku;
   bool get danmakuEnabled => _danmakuEnabled;
   PlaybackPreferences get preferences => _preferences;
@@ -265,7 +275,6 @@ class PlaybackSession extends ChangeNotifier {
     danmaku: _danmakuEnabled,
     videoFit: _videoFit,
     autoAdvance: true,
-    preload: true,
   );
 
   double get _rate => _boosting ? store.playbackPreferences.boostSpeed : _speed;
@@ -335,6 +344,7 @@ class PlaybackSession extends ChangeNotifier {
 
   void _syncPreload() {
     if (_closed) return;
+    _syncAutoDownload();
     if (!_foreground ||
         _plan?.local == true ||
         !ready ||
@@ -342,7 +352,8 @@ class PlaybackSession extends ChangeNotifier {
         !_usable ||
         !_engaged ||
         store.locked ||
-        !hasNext) {
+        !hasNext ||
+        !store.playbackPreferences.preload) {
       _preloader.clear();
       return;
     }
@@ -368,11 +379,55 @@ class PlaybackSession extends ChangeNotifier {
         return;
       }
     }
+    final count = store.playbackPreferences.preloadCount;
+    final upcoming = [
+      for (var i = _index + 1;
+          i < detail.episodes.length && i <= _index + count;
+          i++)
+        detail.episodes[i],
+    ];
     _preloader.prepare(
       detail.drama,
-      detail.episodes[_index + 1],
+      store.playbackPreferences.preloadDownload && upcoming.isNotEmpty
+          ? [upcoming.first]
+          : upcoming,
       quality: _quality,
       online: _online,
+    );
+  }
+
+  /// 预载为完整下载时，按观看顺序把接下来的集数加入下载队列。
+  /// enqueueDownloads 幂等：已下载或已在队列中的集数会自动跳过。
+  void _syncAutoDownload() {
+    if (_closed ||
+        !_usable ||
+        !_engaged ||
+        !hasNext ||
+        !store.canDownload ||
+        !store.playbackPreferences.preloadDownload) {
+      return;
+    }
+    final drama = detail.drama;
+    if (_autoDownloadDrama != drama.id) {
+      _autoDownloadDrama = drama.id;
+      _autoDownloadQueued.clear();
+    }
+    final preferences = store.downloadPreferences;
+    final count = store.playbackPreferences.preloadCount;
+    final targets = [
+      for (var i = _index + 1;
+          i < detail.episodes.length && i <= _index + count;
+          i++)
+        if (!_autoDownloadQueued.contains(detail.episodes[i].number) &&
+            (preferences.includeVip || !detail.episodes[i].vip))
+          detail.episodes[i],
+    ];
+    if (targets.isEmpty) return;
+    _autoDownloadQueued.addAll([for (final episode in targets) episode.number]);
+    unawaited(
+      repository
+          .enqueueDownloads(detail, targets, quality: preferences.quality)
+          .catchError((Object _) {}),
     );
   }
 
@@ -636,7 +691,12 @@ class PlaybackSession extends ChangeNotifier {
             online: _online,
           )
         : null;
-    _preloader.clear();
+    _preloader.advance(
+      detail.drama,
+      detail.episodes[index].number,
+      quality: _quality,
+      online: _online,
+    );
     final ticket = ++_generation;
     _seekSequence++;
     danmaku.setPlan(null);
@@ -647,6 +707,7 @@ class PlaybackSession extends ChangeNotifier {
     if (recovery == null) {
       _recovery.reset();
       _playIntent = playWhenReady;
+      if (playWhenReady) unawaited(AppDevice.requestAudioFocus());
     }
     _resumePosition = position;
     _openedAt = position;
@@ -680,16 +741,28 @@ class PlaybackSession extends ChangeNotifier {
         }
       });
       if (!_current(ticket)) return;
-      prepared = retained != null
-          ? await _loader.fallback(retained!)
+      Future<PlaybackPlan?> attempt() => retained != null
+          ? _loader.fallback(retained!)
           : warmed != null
-          ? await _loader.use(warmed)
-          : await _loader.load(
+          ? _loader.use(warmed)
+          : _loader.load(
               detail.drama,
               detail.episodes[index],
               quality: _quality,
               online: _online,
             );
+      final pending = attempt();
+      try {
+        prepared = await pending.timeout(_resolveTimeout);
+      } on TimeoutException {
+        // 站源长时间无响应：作废旧请求并自动重试一次，避免一直卡在加载界面。
+        pending.ignore();
+        if (!_current(ticket)) return;
+        DiaryService.add('[Play] 解析播放地址超时，自动重试');
+        _loadingMessage = '站源响应缓慢，正在重新获取';
+        _notify();
+        prepared = await attempt().timeout(_resolveTimeout);
+      }
       if (prepared == null) return;
       final plan = prepared;
       await _serialize(() async {
@@ -704,6 +777,14 @@ class PlaybackSession extends ChangeNotifier {
         _plan = plan;
         installed = true;
         _acceptErrors = true;
+        store.rememberDramaQuality(
+          detail.drama.source,
+          detail.drama.id,
+          plan.qualities.fold(
+            plan.quality,
+            (best, quality) => quality > best ? quality : best,
+          ),
+        );
         await player.open(
           Media(
             plan.url,
@@ -889,7 +970,9 @@ class PlaybackSession extends ChangeNotifier {
       return;
     }
     _playIntent = true;
+    _focusPaused = false;
     if (!wasEngaged) unawaited(_limitCache(player, false));
+    unawaited(AppDevice.requestAudioFocus());
     if (ready) unawaited(player.play());
   }
 
@@ -917,11 +1000,14 @@ class PlaybackSession extends ChangeNotifier {
     if (!_usable || !ready) return;
     endBoost();
     _playIntent = !player.state.playing;
+    // 用户手动控制后，焦点恢复不再自动续播。
+    _focusPaused = false;
     _health.reset();
     if (_playIntent && player.state.completed) {
       unawaited(play(_index));
       return;
     }
+    if (_playIntent) unawaited(AppDevice.requestAudioFocus());
     if (_playIntent && _staleAudio) {
       _staleAudio = false;
       unawaited(player.seek(player.state.position).then((_) => player.play()));
@@ -930,6 +1016,34 @@ class PlaybackSession extends ChangeNotifier {
     }
     if (!_playIntent) unawaited(saveProgress());
     _syncDanmaku();
+  }
+
+  /// Android 音频焦点回调：被抢占时自动暂停，恢复时仅续播因焦点暂停的播放。
+  Future<void> _onDeviceCall(MethodCall call) async {
+    if (_closed || call.method != 'audioFocusChanged') return;
+    final change = switch (call.arguments) {
+      {'change': final int change} => change,
+      _ => 0,
+    };
+    if (change > 0) {
+      // GAIN：只恢复因焦点丢失而自动暂停的播放。
+      if (!_focusPaused) return;
+      _focusPaused = false;
+      if (!_usable) return;
+      _playIntent = true;
+      _health.reset();
+      unawaited(player.play());
+      _syncDanmaku();
+    } else if (change < 0) {
+      // LOSS / LOSS_TRANSIENT / LOSS_TRANSIENT_CAN_DUCK：让出音频，暂停并保存进度。
+      if (!_playIntent || !player.state.playing) return;
+      _focusPaused = true;
+      _playIntent = false;
+      _health.reset();
+      unawaited(player.pause());
+      unawaited(saveProgress());
+      _syncDanmaku();
+    }
   }
 
   Future<bool> seekTo(Duration target) async {
@@ -1213,6 +1327,8 @@ class PlaybackSession extends ChangeNotifier {
     unawaited(saveProgress());
     _closed = true;
     _generation++;
+    AppDevice.removeDeviceHandler(_onDeviceCall);
+    unawaited(AppDevice.abandonAudioFocus());
     store.removeListener(_accessChanged);
     store.removeListener(_syncBlockedWords);
     _saveTimer?.cancel();

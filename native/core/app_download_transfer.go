@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -79,36 +80,45 @@ func (manager *nativeDownloads) transferMedia(ctx context.Context, job nativeDow
 		return nativeDownloadResult{}, err
 	}
 	var completedBytes int64
-	for index, asset := range bundle.assets {
-		if err := ctx.Err(); err != nil {
-			return nativeDownloadResult{}, err
-		}
+	downloadAsset := func(index int, asset nativeDownloadAsset) (int64, error) {
 		target := filepath.Join(directory, asset.name)
-		var size int64
 		if asset.data != nil {
-			err = nativeDownloadWrite(target, asset.data)
-			size = int64(len(asset.data))
-		} else {
-			size, err = manager.downloadFile(ctx, asset.address, media.Referer, target, asset.key, func(received, total int64) {
-				progress := 0.0
-				if total > 0 {
-					progress = min(1, float64(received)/float64(total))
-				}
-				if hls {
-					progress = (float64(index) + progress) / float64(len(bundle.assets))
-				}
-				overallTotal := int64(0)
-				if !hls {
-					overallTotal = total
-				}
-				manager.progress(job.ID, completedBytes+received, overallTotal, progress)
-			})
+			if err := nativeDownloadWrite(target, asset.data); err != nil {
+				return 0, err
+			}
+			return int64(len(asset.data)), nil
 		}
-		if err != nil {
+		return manager.downloadFile(ctx, asset.address, media.Referer, target, asset.key, func(received, total int64) {
+			progress := 0.0
+			if total > 0 {
+				progress = min(1, float64(received)/float64(total))
+			}
+			if hls {
+				progress = (float64(index) + progress) / float64(len(bundle.assets))
+			}
+			overallTotal := int64(0)
+			if !hls {
+				overallTotal = total
+			}
+			manager.progress(job.ID, completedBytes+received, overallTotal, progress)
+		})
+	}
+	if hls && len(bundle.assets) > 1 {
+		if err := manager.downloadAssetsParallel(ctx, job, bundle.assets, directory, media.Referer, &completedBytes); err != nil {
 			return nativeDownloadResult{}, err
 		}
-		completedBytes += size
-		manager.progress(job.ID, completedBytes, 0, float64(index+1)/float64(len(bundle.assets)))
+	} else {
+		for index, asset := range bundle.assets {
+			if err := ctx.Err(); err != nil {
+				return nativeDownloadResult{}, err
+			}
+			size, err := downloadAsset(index, asset)
+			if err != nil {
+				return nativeDownloadResult{}, err
+			}
+			completedBytes += size
+			manager.progress(job.ID, completedBytes, 0, float64(index+1)/float64(len(bundle.assets)))
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return nativeDownloadResult{}, err
@@ -120,6 +130,95 @@ func (manager *nativeDownloads) transferMedia(ctx context.Context, job nativeDow
 	}
 	manager.progress(job.ID, completedBytes, completedBytes, 1)
 	return nativeDownloadResult{file: entry, key: hex.EncodeToString(media.CENCKey), quality: bundle.quality}, nil
+}
+
+// nativeDownloadSegmentConcurrency 控制单个 HLS 任务内分片的并行下载数。
+const nativeDownloadSegmentConcurrency = 4
+
+func (manager *nativeDownloads) downloadAssetsParallel(
+	ctx context.Context,
+	job nativeDownloadJob,
+	assets []nativeDownloadAsset,
+	directory string,
+	referer string,
+	completedBytes *int64,
+) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type outcome struct {
+		size  int64
+		error error
+	}
+	outcomes := make([]outcome, len(assets))
+	fractions := make([]float64, len(assets))
+	var mu sync.Mutex
+	report := func(index int, fraction float64) {
+		var bytesValue int64
+		mu.Lock()
+		fractions[index] = max(fractions[index], min(1, fraction))
+		done := 0.0
+		for _, value := range fractions {
+			done += value
+		}
+		bytesValue = *completedBytes
+		mu.Unlock()
+		manager.progress(job.ID, bytesValue, 0, min(1, done/float64(len(assets))))
+	}
+	work := make(chan int, len(assets))
+	for index := range assets {
+		work <- index
+	}
+	close(work)
+	concurrency := manager.segmentConcurrency
+	if concurrency < 1 {
+		concurrency = nativeDownloadSegmentConcurrency
+	}
+	workers := min(len(assets), concurrency)
+	var wg sync.WaitGroup
+	for worker := 0; worker < workers; worker++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for index := range work {
+				asset := assets[index]
+				target := filepath.Join(directory, asset.name)
+				var size int64
+				var err error
+				if asset.data != nil {
+					if err = nativeDownloadWrite(target, asset.data); err == nil {
+						size = int64(len(asset.data))
+					}
+				} else {
+					size, err = manager.downloadFile(ctx, asset.address, referer, target, asset.key, func(received, total int64) {
+						fraction := 0.0
+						if total > 0 {
+							fraction = float64(received) / float64(total)
+						}
+						report(index, fraction)
+					})
+				}
+				if err != nil {
+					mu.Lock()
+					outcomes[index] = outcome{error: err}
+					mu.Unlock()
+					cancel()
+					return
+				}
+				report(index, 1)
+				mu.Lock()
+				*completedBytes += size
+				outcomes[index] = outcome{size: size}
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	for _, result := range outcomes {
+		if result.error != nil {
+			return result.error
+		}
+	}
+	return ctx.Err()
 }
 
 func nativeDownloadValidator(header http.Header) string {

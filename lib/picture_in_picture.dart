@@ -32,7 +32,7 @@ Size _miniSize(double ratio, double extent) =>
 class PictureInPicture extends ChangeNotifier {
   PictureInPicture._() {
     if (defaultTargetPlatform != TargetPlatform.android) return;
-    AppDevice.channel.setMethodCallHandler(_handle);
+    AppDevice.addDeviceHandler(_handle);
     AppLifecycleListener(onStateChange: _lifecycleChanged);
     unawaited(_status());
   }

@@ -15,6 +15,7 @@ import '../widgets/bar_button.dart';
 import '../widgets/category_tabs.dart';
 import '../widgets/choice_panel.dart';
 import '../widgets/drama_grid.dart';
+import '../widgets/focus_ring.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/motion/motion_widgets.dart';
 import '../widgets/page_header.dart';
@@ -250,6 +251,31 @@ class ExplorePageState extends State<ExplorePage> {
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
+  /// 画质筛选：目录源不提供画质信息，选项基于本地已识别的画质记录。
+  Widget _qualityRow() {
+    final filter = widget.store.qualityFilter;
+    Widget chip(int value, String label) => FocusRing(
+      radius: 8,
+      child: ChoiceChip(
+        key: ValueKey('quality-filter-$value'),
+        label: Text(label),
+        showCheckmark: false,
+        selected: filter == value,
+        onSelected: (_) => widget.store.setQualityFilter(value),
+      ),
+    );
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        chip(0, '全部画质'),
+        chip(720, '720P+'),
+        chip(1080, '1080P'),
+      ],
+    );
+  }
+
   Widget _content(
     ExploreFeed explore,
     double inset,
@@ -258,7 +284,16 @@ class ExplorePageState extends State<ExplorePage> {
   ) {
     final feed = explore.feed!;
     final hero = _hero(explore);
-    final items = explore.items;
+    final filter = widget.store.qualityFilter;
+    final items = filter > 0
+        ? explore.items
+            .where(
+              (drama) =>
+                  (widget.store.dramaQuality(drama.source, drama.id) ?? 0) >=
+                  filter,
+            )
+            .toList()
+        : explore.items;
     if (feed.items.isEmpty) {
       return FadeSwitcher(child: _status(feed));
     }
@@ -331,35 +366,65 @@ class ExplorePageState extends State<ExplorePage> {
                 sliver: SliverToBoxAdapter(child: tabs),
               ),
             SliverToBoxAdapter(
-              child: television
-                  ? heroSection
-                  : AnimatedSize(
-                      key: ValueKey(explore.tab.id),
-                      duration: Motion.of(context, Motion.long),
-                      curve: Motion.enter,
-                      alignment: Alignment.topCenter,
-                      clipBehavior: Clip.none,
-                      child: FadeSwitcher(
-                        alignment: Alignment.topCenter,
-                        child: heroSection,
-                      ),
-                    ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(inset, desktop ? 20 : 16, inset, 0),
-              sliver: DramaSliverGrid(
-                width: constraints.maxWidth - inset * 2,
-                items: items,
-                rankOf: explore.rankOf,
-                autofocus:
-                    television && hero == null && ShellForeground.of(context),
-                heroScope: 'drama',
-                showScore: !explore.recommending,
-                exploreBlur: true,
-                onOpen: _open,
-                onMore: (drama) => quickFollow(context, widget.store, drama),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  inset,
+                  television ? 8 : 4,
+                  inset,
+                  0,
+                ),
+                child: _qualityRow(),
               ),
             ),
+            if (items.isEmpty)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(inset, 40, inset, 0),
+                sliver: SliverToBoxAdapter(
+                  child: StatusView(
+                    key: const ValueKey('quality-empty'),
+                    title: '没有已知 ${widget.store.qualityFilter}P+ 的剧集',
+                    message: '画质会在播放或打开详情后自动识别，识别到的剧会显示在这里',
+                    icon: Icons.hd_outlined,
+                  ),
+                ),
+              )
+            else ...[
+              SliverToBoxAdapter(
+                child: television
+                    ? heroSection
+                    : AnimatedSize(
+                        key: ValueKey(explore.tab.id),
+                        duration: Motion.of(context, Motion.long),
+                        curve: Motion.enter,
+                        alignment: Alignment.topCenter,
+                        clipBehavior: Clip.none,
+                        child: FadeSwitcher(
+                          alignment: Alignment.topCenter,
+                          child: heroSection,
+                        ),
+                      ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  inset,
+                  desktop ? 20 : 16,
+                  inset,
+                  0,
+                ),
+                sliver: DramaSliverGrid(
+                  width: constraints.maxWidth - inset * 2,
+                  items: items,
+                  rankOf: explore.rankOf,
+                  autofocus:
+                      television && hero == null && ShellForeground.of(context),
+                  heroScope: 'drama',
+                  showScore: !explore.recommending,
+                  exploreBlur: true,
+                  onOpen: _open,
+                  onMore: (drama) => quickFollow(context, widget.store, drama),
+                ),
+              ),
+            ],
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 inset,

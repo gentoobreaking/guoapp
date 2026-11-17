@@ -6,6 +6,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'core_bridge.dart';
 
+/// 原生侧主动回调（duanju/device 通道）的处理函数签名。
+typedef DeviceCallHandler = Future<void> Function(MethodCall call);
+
 class AppDevice {
   const AppDevice({this.television = false, this.version = ''});
   final bool television;
@@ -54,6 +57,60 @@ class AppDevice {
     } catch (_) {
       return false;
     }
+  }
+
+  /// duanju/device 通道的原生主动回调统一分发：
+  /// 多个模块共用一条通道，各自 setMethodCallHandler 会互相覆盖。
+  static final List<DeviceCallHandler> _deviceHandlers = [];
+  static bool _deviceHandlerInstalled = false;
+
+  static void addDeviceHandler(DeviceCallHandler handler) {
+    _deviceHandlers.add(handler);
+    _installDeviceHandler();
+  }
+
+  static void removeDeviceHandler(DeviceCallHandler handler) {
+    _deviceHandlers.remove(handler);
+  }
+
+  static void _installDeviceHandler() {
+    if (_deviceHandlerInstalled || _deviceHandlers.isEmpty) return;
+    try {
+      channel.setMethodCallHandler((call) async {
+        for (final handler in List.of(_deviceHandlers)) {
+          try {
+            await handler(call);
+          } catch (_) {}
+        }
+      });
+      _deviceHandlerInstalled = true;
+    } catch (_) {
+      // Binary messenger 尚未初始化（如纯 Dart 测试环境），待下次注册时重试。
+    }
+  }
+
+  /// 音频焦点变化码（与原生 AudioManager 一致）。
+  static const audioFocusGain = 1;
+  static const audioFocusLoss = -1;
+  static const audioFocusLossTransient = -2;
+  static const audioFocusLossTransientCanDuck = -3;
+
+  /// 请求音频焦点（仅 Android 生效），返回是否获得。
+  static Future<bool> requestAudioFocus() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return true;
+    try {
+      return await channel.invokeMethod<bool>('requestAudioFocus') ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 归还音频焦点（仅 Android 生效）。
+  static Future<void> abandonAudioFocus() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await channel.invokeMethod<void>('abandonAudioFocus');
+    } catch (_) {}
   }
 
   static Future<bool> setCompatibleRendering(bool enabled) async {

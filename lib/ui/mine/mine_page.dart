@@ -304,6 +304,20 @@ class MinePage extends StatelessWidget {
                         onTap: () => openUsers(context, store),
                       ),
                     ),
+                    if (store.canDownload)
+                      Expanded(
+                        child: ListenableBuilder(
+                          listenable: downloads,
+                          builder: (context, _) => _TelevisionEntry(
+                            icon: Icons.download_rounded,
+                            title: '下载',
+                            subtitle: downloads.active > 0
+                                ? '${downloads.active} 集进行中 · 查看队列与已下载'
+                                : '管理下载与已下载剧集',
+                            onTap: () => _openDownloads(context),
+                          ),
+                        ),
+                      ),
                     if (store.profile.admin)
                       Expanded(
                         child: _TelevisionEntry(

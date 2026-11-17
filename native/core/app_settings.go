@@ -14,23 +14,47 @@ import (
 )
 
 type nativeResourceSettings struct {
-	ProxyMode           string `json:"proxyMode"`
-	ProxyURL            string `json:"proxyUrl"`
-	CatalogConcurrency  int    `json:"catalogConcurrency"`
-	DownloadConcurrency int    `json:"downloadConcurrency"`
-	DownloadBySource    bool   `json:"downloadBySource"`
-	Warning             string `json:"warning,omitempty"`
-	SystemProxyStatus   string `json:"systemProxyStatus,omitempty"`
+	ProxyMode                  string `json:"proxyMode"`
+	ProxyURL                   string `json:"proxyUrl"`
+	CatalogConcurrency         int    `json:"catalogConcurrency"`
+	DownloadConcurrency        int    `json:"downloadConcurrency"`
+	DownloadSegmentConcurrency int    `json:"downloadSegmentConcurrency"`
+	PrefetchLimit              int    `json:"prefetchLimit"`
+	DownloadBySource           bool   `json:"downloadBySource"`
+	Warning                    string `json:"warning,omitempty"`
+	SystemProxyStatus          string `json:"systemProxyStatus,omitempty"`
 }
 
 func defaultResourceSettings() nativeResourceSettings {
-	return nativeResourceSettings{ProxyMode: "auto", CatalogConcurrency: 3, DownloadConcurrency: 2}
+	return nativeResourceSettings{ProxyMode: "auto", CatalogConcurrency: 3, DownloadConcurrency: 2,
+		DownloadSegmentConcurrency: nativeDownloadSegmentConcurrency, PrefetchLimit: nativePreloadLimit}
+}
+
+// normalizeResourceSettings 兼容缺少新字段的旧设置文件。
+func (settings nativeResourceSettings) normalize() nativeResourceSettings {
+	if settings.CatalogConcurrency < 1 {
+		settings.CatalogConcurrency = 3
+	}
+	if settings.DownloadConcurrency < 1 {
+		settings.DownloadConcurrency = 2
+	}
+	if settings.DownloadSegmentConcurrency < 1 {
+		settings.DownloadSegmentConcurrency = nativeDownloadSegmentConcurrency
+	}
+	if settings.PrefetchLimit < 1 {
+		settings.PrefetchLimit = nativePreloadLimit
+	}
+	return settings
 }
 
 func (settings nativeResourceSettings) validate() error {
 	if settings.CatalogConcurrency < 1 || settings.CatalogConcurrency > 6 ||
-		settings.DownloadConcurrency < 1 || settings.DownloadConcurrency > 6 {
-		return errors.New("并发应为 1 至 6")
+		settings.DownloadConcurrency < 1 || settings.DownloadConcurrency > 6 ||
+		settings.DownloadSegmentConcurrency < 1 || settings.DownloadSegmentConcurrency > 8 {
+		return errors.New("并发应为 1 至 8")
+	}
+	if settings.PrefetchLimit < 1<<20 || settings.PrefetchLimit > 32<<20 {
+		return errors.New("预取大小应为 1 至 32 MB")
 	}
 	if settings.ProxyMode != "auto" && settings.ProxyMode != "direct" && settings.ProxyMode != "manual" {
 		return errors.New("代理模式无效")
@@ -87,8 +111,12 @@ func (engine *nativeEngine) loadResourceSettings() {
 	if err == nil {
 		var stored nativeResourceSettings
 		if info.Mode().IsRegular() && info.Size() <= 16384 {
-			if data, readErr := os.ReadFile(file); readErr == nil && json.Unmarshal(data, &stored) == nil && stored.validate() == nil {
-				settings = stored
+			if data, readErr := os.ReadFile(file); readErr == nil && json.Unmarshal(data, &stored) == nil {
+				settings = stored.normalize()
+				if settings.validate() != nil {
+					settings = defaultResourceSettings()
+					settings.Warning = "网络与下载设置无法读取，已使用默认值，请重新保存设置"
+				}
 			} else {
 				settings.Warning = "网络与下载设置无法读取，已使用默认值，请重新保存设置"
 			}
@@ -135,6 +163,7 @@ func (engine *nativeEngine) applyResourceSettings(settings nativeResourceSetting
 	if engine.downloads != nil {
 		engine.downloads.mu.Lock()
 		engine.downloads.concurrency = settings.DownloadConcurrency
+		engine.downloads.segmentConcurrency = max(1, settings.DownloadSegmentConcurrency)
 		engine.downloads.bySource = settings.DownloadBySource
 		engine.downloads.scheduleLocked()
 		engine.downloads.mu.Unlock()

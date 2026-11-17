@@ -256,6 +256,12 @@ class _DownloadedDramaPageState extends State<DownloadedDramaPage> {
               ),
       );
 
+  double _inset(BuildContext context) => switch (AppScope.formFactorOf(context)) {
+    FormFactor.phone => 16.0,
+    FormFactor.television => televisionInset,
+    _ => 24.0,
+  };
+
   Widget _fillButton(Drama drama, {bool icon = true}) => _textButton(
     '补齐缺集',
     _updater!.busy || _busy ? null : () => _fill(drama),
@@ -394,7 +400,12 @@ class _DownloadedDramaPageState extends State<DownloadedDramaPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 24, 8),
+              padding: EdgeInsets.fromLTRB(
+                _inset(context) - 12,
+                8,
+                _inset(context),
+                8,
+              ),
               child: SizedBox(
                 height: 48,
                 child: Row(
@@ -470,7 +481,13 @@ class _DownloadedDramaPageState extends State<DownloadedDramaPage> {
               ),
             ),
             Expanded(
-              child: _content(context, item, selection, inset: 24, lead: 68),
+              child: _content(
+                context,
+                item,
+                selection,
+                inset: _inset(context),
+                lead: _inset(context) + 44,
+              ),
             ),
           ],
         ),

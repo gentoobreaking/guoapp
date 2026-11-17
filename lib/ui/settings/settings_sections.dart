@@ -48,6 +48,11 @@ const adminOnly = '需要管理员';
 const _noDownload = '当前用户没有下载权限';
 const _proxyModes = {'auto': '自动', 'direct': '直连', 'manual': '手动代理'};
 const _counts = {1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6'};
+const _segmentCounts = {
+  1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
+};
+const _prefetchLimits = {4194304: '4 MB', 8388608: '8 MB', 16777216: '16 MB'};
+const _preloadCounts = {1: '1 集', 2: '2 集', 3: '3 集', 4: '4 集', 5: '5 集'};
 const _decoders = {
   TelevisionDecoder.optimized: '默认',
   TelevisionDecoder.hardware: '硬解（兼容）',
@@ -272,6 +277,37 @@ class SettingsSection extends StatelessWidget {
       SettingsCard(
         children: [
           SwitchTile(
+            title: '预加载下一集',
+            subtitle: '播放时提前准备下一集地址并预取开头片段，切集更快',
+            value: preferences.preload,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(preload: value)),
+          ),
+          SwitchTile(
+            title: '预载为完整下载',
+            subtitle: preferences.preloadDownload
+                ? '按观看顺序把接下来的集数提前下载到下载目录，弱网或断网也能连续观看'
+                : '开启后预载改为完整下载到磁盘，需要较多存储空间与流量',
+            value: preferences.preloadDownload,
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(preloadDownload: value),
+            ),
+          ),
+          ValueTile<int>(
+            title: '预加载集数',
+            subtitle: !preferences.preload
+                ? '需先打开预加载下一集'
+                : preferences.preloadDownload
+                ? '按观看顺序把接下来的集数加入下载队列'
+                : '按观看顺序依次预载接下来的集数，占用较多网络与内存',
+            options: _preloadCounts,
+            value: preferences.preloadCount,
+            onChanged: preferences.preload
+                ? (value) =>
+                      savePreferences(preferences.copyWith(preloadCount: value))
+                : null,
+          ),
+          SwitchTile(
             title: '全屏显示时间',
             subtitle: '全屏播放时在画面顶部显示当前时间',
             value: preferences.showClock,
@@ -365,6 +401,42 @@ class SettingsSection extends StatelessWidget {
                 ? (value) => _saveResource(
                     context,
                     settings.copyWith(downloadConcurrency: value),
+                  )
+                : null,
+          ),
+          ValueTile<int>(
+            title: '分片下载并行数',
+            subtitle: admin ? '单集内视频分片的同时下载数量，源站限速时可调低' : adminOnly,
+            options: _segmentCounts,
+            value: settings?.downloadSegmentConcurrency,
+            onChanged: editable
+                ? (value) => _saveResource(
+                    context,
+                    settings.copyWith(downloadSegmentConcurrency: value),
+                  )
+                : null,
+          ),
+          ValueTile<int>(
+            title: '预取大小',
+            subtitle: admin ? '预加载下一集时预先缓冲的数据量' : adminOnly,
+            options: _prefetchLimits,
+            value: settings?.prefetchLimit,
+            onChanged: editable
+                ? (value) => _saveResource(
+                    context,
+                    settings.copyWith(prefetchLimit: value),
+                  )
+                : null,
+          ),
+          ValueTile<int>(
+            title: '同时请求数量',
+            subtitle: admin ? '浏览目录时同时请求站源的数量' : adminOnly,
+            options: _counts,
+            value: settings?.catalogConcurrency,
+            onChanged: editable
+                ? (value) => _saveResource(
+                    context,
+                    settings.copyWith(catalogConcurrency: value),
                   )
                 : null,
           ),

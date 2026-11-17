@@ -11,6 +11,7 @@ import '../../playback_session.dart';
 import '../settings/sorani_account_view.dart';
 import '../theme/motion.dart';
 import '../widgets/contained_slider.dart';
+import '../widgets/focus_ring.dart';
 import '../widgets/motion/motion_widgets.dart';
 import 'cast_page.dart';
 import 'danmaku_overlay.dart';
@@ -1147,27 +1148,55 @@ class _PlaybackProgressBuilderState extends State<PlaybackProgressBuilder> {
   Widget build(BuildContext context) => widget.builder(context);
 }
 
-class PlaybackLoading extends StatelessWidget {
+class PlaybackLoading extends StatefulWidget {
   const PlaybackLoading({super.key, required this.session});
   final PlaybackSession session;
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Colors.black.withValues(alpha: .78),
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(
-            session.loadingMessage,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-        ],
+  State<PlaybackLoading> createState() => _PlaybackLoadingState();
+}
+
+class _PlaybackLoadingState extends State<PlaybackLoading> {
+  var _slow = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Timer(const Duration(seconds: 12), () {
+      if (mounted) setState(() => _slow = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = widget.session;
+    return ColoredBox(
+      color: Colors.black.withValues(alpha: .78),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              session.loadingMessage,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+            if (_slow) ...[
+              const SizedBox(height: 16),
+              FocusRing(
+                radius: 20,
+                child: OutlinedButton(
+                  onPressed: () => session.retry(),
+                  child: const Text('重新获取'),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class PlaybackFailure extends StatelessWidget {

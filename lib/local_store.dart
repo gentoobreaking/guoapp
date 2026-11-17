@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -75,6 +76,7 @@ class LocalStore extends ChangeNotifier {
   final Map<String, Drama> _favorites = {};
   final Map<String, FollowState> _followStates = {};
   Map<String, FollowCheck> _followChecks = {};
+  final Map<String, int> _dramaQualities = {};
   Map<String, Object?> _settings = {};
   Map<String, Object?> _userSettings = {};
   Future<void> _writes = Future<void>.value();
@@ -229,6 +231,7 @@ class LocalStore extends ChangeNotifier {
     _favorites.clear();
     _followStates.clear();
     _followChecks = {};
+    _dramaQualities.clear();
     _userSettings = {};
     if (_configurationError != null) return;
     final id = _current;
@@ -260,6 +263,12 @@ class LocalStore extends ChangeNotifier {
       try {
         _followChecks[entry.key] = FollowCheck.fromJson(entry.value);
       } catch (_) {}
+    }
+    final qualities = _map(await _readFile(_userFile(id, 'dramaQualities')));
+    for (final entry in qualities.entries) {
+      if (entry.value is int && (entry.value as int) > 0) {
+        _dramaQualities[entry.key] = entry.value as int;
+      }
     }
   }
 
@@ -293,6 +302,7 @@ class LocalStore extends ChangeNotifier {
     _favorites.clear();
     _followStates.clear();
     _followChecks = {};
+    _dramaQualities.clear();
     _userSettings = {};
     _epoch++;
   }
@@ -393,6 +403,37 @@ class LocalStore extends ChangeNotifier {
   }
 
   Map<String, FollowCheck> get followChecks => Map.of(_followChecks);
+
+  /// 已观测到的剧集画质（key 为 source\0id，值为解析到的最高画质）。
+  /// 目录像源不提供画质信息，只能在播放或后台解析第一集后自动学习。
+  int? dramaQuality(String source, String id) =>
+      _dramaQualities['$source\u0000$id'];
+
+  void rememberDramaQuality(String source, String id, int quality) {
+    if (quality <= 0 || source.isEmpty || id.isEmpty) return;
+    final key = '$source\u0000$id';
+    if ((_dramaQualities[key] ?? 0) >= quality) return;
+    _dramaQualities[key] = quality;
+    unawaited(_saveDramaQualities());
+    _notify();
+  }
+
+  Future<void> _saveDramaQualities() =>
+      _write(_userFile(_current, 'dramaQualities'), {
+        for (final entry in _dramaQualities.entries) entry.key: entry.value,
+      });
+
+  /// 列表画质筛选：0 = 全部，720 = 只看已知 720P+，1080 = 只看已知 1080P。
+  int get qualityFilter {
+    if (locked) return 0;
+    return switch (_userSettings['qualityFilter']) {
+      final int value when value == 720 || value == 1080 => value,
+      _ => 0,
+    };
+  }
+
+  Future<void> setQualityFilter(int value) =>
+      _userSetting('qualityFilter', value);
 
   Future<void> saveFollowChecks(
     Map<String, FollowCheck> checks, {

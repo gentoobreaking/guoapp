@@ -28,6 +28,8 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Rect
 import android.graphics.drawable.Icon
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaScannerConnection
 import android.net.ConnectivityManager
@@ -77,6 +79,8 @@ class MainActivity : FlutterActivity() {
     private var headroomReadAt = 0L
     private var thermalHeadroom: Double? = null
     private var deviceChannel: MethodChannel? = null
+    private var audioFocusListener: AudioManager.OnAudioFocusChangeListener? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
     private var televisionMode = false
     private var orientationListener: OrientationEventListener? = null
 
@@ -453,6 +457,8 @@ class MainActivity : FlutterActivity() {
                                 result.success(null)
                             }
                         }
+                        "requestAudioFocus" -> requestAudioFocus(result)
+                        "abandonAudioFocus" -> abandonAudioFocus(result)
                         "openExternalPlayer" -> {
                             val url = call.argument<String>("url")
                             val title = call.argument<String>("title") ?: "短剧"
@@ -535,6 +541,49 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
+    }
+
+    /** 音频焦点变化通知 Dart：1=GAIN，-1=LOSS，-2=LOSS_TRANSIENT，-3=LOSS_TRANSIENT_CAN_DUCK。 */
+    private fun requestAudioFocus(result: MethodChannel.Result) {
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val listener = audioFocusListener
+            ?: AudioManager.OnAudioFocusChangeListener { change ->
+                deviceChannel?.invokeMethod("audioFocusChanged", mapOf("change" to change))
+            }.also { audioFocusListener = it }
+        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val request = audioFocusRequest ?: AudioFocusRequest
+                .Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                        .build()
+                )
+                .setOnAudioFocusChangeListener(listener)
+                .build()
+                .also { audioFocusRequest = it }
+            audio.requestAudioFocus(request)
+        } else {
+            @Suppress("DEPRECATION")
+            audio.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+        }
+        result.success(granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+    }
+
+    private fun abandonAudioFocus(result: MethodChannel.Result) {
+        val listener = audioFocusListener ?: run {
+            result.success(null)
+            return
+        }
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { audio.abandonAudioFocusRequest(it) }
+                ?: AudioManager.AUDIOFOCUS_REQUEST_FAILED
+        } else {
+            @Suppress("DEPRECATION")
+            audio.abandonAudioFocus(listener)
+        }
+        result.success(granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
     }
 
     private fun exportVideo(source: File, folder: String, name: String) {
@@ -698,6 +747,22 @@ class MainActivity : FlutterActivity() {
         orientationListener = null
         textInput?.dispose()
         textInput = null
+        val request = audioFocusRequest
+        val listener = audioFocusListener
+        if (request != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            runCatching {
+                (getSystemService(Context.AUDIO_SERVICE) as AudioManager)
+                    .abandonAudioFocusRequest(request)
+            }
+        } else if (listener != null) {
+            @Suppress("DEPRECATION")
+            runCatching {
+                (getSystemService(Context.AUDIO_SERVICE) as AudioManager)
+                    .abandonAudioFocus(listener)
+            }
+        }
+        audioFocusRequest = null
+        audioFocusListener = null
         deviceChannel?.setMethodCallHandler(null)
         deviceChannel = null
         super.cleanUpFlutterEngine(flutterEngine)
