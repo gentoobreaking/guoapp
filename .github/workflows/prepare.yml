@@ -1,0 +1,45 @@
+name: Prepare Release
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: "Version from pubspec.yaml"
+        value: ${{ jobs.prepare.outputs.version }}
+      tag:
+        description: "Git tag for release"
+        value: ${{ jobs.prepare.outputs.tag }}
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "只能從 main 分支發布，當前為 $GITHUB_REF。" >&2
+            exit 1
+          fi
+          version=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1)
+          if [ -z "$version" ]; then
+            echo "pubspec.yaml 缺少 version。" >&2
+            exit 1
+          fi
+          tag="app-v${version//+/-}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null || gh release view "$tag" >/dev/null 2>&1; then
+            echo "版本 $version（$tag）已發布過，請先提升 pubspec.yaml 的 version。" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"

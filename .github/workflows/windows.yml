@@ -1,0 +1,135 @@
+name: Release Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  UPDATE_SERVER_URL: ${{ vars.UPDATE_SERVER_URL }}
+  PACKAGE_NAME: ${{ vars.PACKAGE_NAME }}
+  BUNDLED_MODULES: bundled-modules/hongguo
+  PYTHONUTF8: '1'
+  PROJECT_URL: ${{ vars.PROJECT_URL }}
+  TELEGRAM_GROUP_URL: ${{ vars.TELEGRAM_GROUP_URL }}
+  TELEGRAM_CHANNEL_URL: ${{ vars.TELEGRAM_CHANNEL_URL }}
+
+jobs:
+  prepare:
+    uses: ./.github/workflows/prepare.yml
+    secrets: inherit
+
+  windows:
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout Hongguo module
+        uses: actions/checkout@v4
+        with:
+          repository: guoapp-modules/hongguo
+          path: bundled-modules/hongguo
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: native/go.mod
+          cache-dependency-path: native/go.sum
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+      - name: Set up MinGW-w64
+        shell: pwsh
+        run: |
+          choco install mingw --no-progress -y
+          $exe = Get-ChildItem -Path 'C:\ProgramData\mingw64', 'C:\ProgramData\chocolatey\lib\mingw' `
+                   -Recurse -Include 'x86_64-w64-mingw32-gcc.exe', 'gcc.exe' -ErrorAction SilentlyContinue |
+                Select-Object -First 1 -ExpandProperty FullName
+          if (-not $exe) { $exe = (Get-Command x86_64-w64-mingw32-gcc -ErrorAction SilentlyContinue).Source }
+          if (-not $exe) { throw 'MinGW-w64 安裝失敗，找不到 gcc' }
+          Split-Path $exe | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & $exe --version | Select-Object -First 1
+      - name: Set up Inno Setup
+        shell: pwsh
+        run: choco upgrade innosetup --no-progress -y
+      - name: Build Windows
+        run: python scripts/build_windows.py
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/windows/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: [prepare, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: release
+      - name: Create Windows Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          cat > notes.md <<EOF
+          版本 ${VERSION}。安裝包內置紅果站源，其餘站源在 設定 › 站源 › 模組管理 的模組商店安裝。
+
+          Windows：
+          - *-windows-x64-setup.exe：安裝包，默認安裝到當前用戶，無需管理員權限；安裝時可改為所有用戶
+          - *-windows-x64.zip：便攜版，解壓後運行 guoapp.exe；設置、記錄、海報緩存和默認下載都保存在程序旁的 userdata 目錄，升級時把舊版的 userdata 目錄複製過來即可
+          EOF
+          changes="$(awk -v heading="## ${VERSION}" '
+            $0 == heading { found = 1; next }
+            found && /^## / { exit }
+            found && !started && /^[[:space:]]*$/ { next }
+            found { started = 1; print }
+          ' CHANGELOG.md)"
+          printf '%s' "$changes" > changes.md
+          if [ -z "$changes" ]; then
+            echo "CHANGELOG.md 中找不到「## ${VERSION}」小節，拒絕發布沒有更新說明的版本。" >&2
+            exit 1
+          fi
+          { printf '更新內容：\n\n%s\n\n' "$changes"; cat notes.md; } > notes.tmp
+          mv notes.tmp notes.md
+          gh release create "$TAG" release/* --target "$GITHUB_SHA" --title "影片庫 ${VERSION} (Windows)" --notes-file notes.md
+      - name: Notify Telegram
+        if: ${{ vars.TELEGRAM_BOT_TOKEN != '' && vars.TELEGRAM_CHAT_ID != '' }}
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          changes="$(cat changes.md)"
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
+          text="影片庫 ${VERSION} (Windows) 已發布"
+          if [ -n "$changes" ]; then
+            text="$(printf '%s\n\n更新內容：\n\n%s' "$text" "${changes:0:3500}")"
+          fi
+          text="$(printf '%s\n\n下載：%s' "$text" "$url")"
+          curl -fsS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${text}" >/dev/null

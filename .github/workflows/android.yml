@@ -1,0 +1,179 @@
+name: Release Android
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  UPDATE_SERVER_URL: ${{ vars.UPDATE_SERVER_URL }}
+  PACKAGE_NAME: ${{ vars.PACKAGE_NAME }}
+  BUNDLED_MODULES: bundled-modules/hongguo
+  PYTHONUTF8: '1'
+  PROJECT_URL: ${{ vars.PROJECT_URL }}
+  TELEGRAM_GROUP_URL: ${{ vars.TELEGRAM_GROUP_URL }}
+  TELEGRAM_CHANNEL_URL: ${{ vars.TELEGRAM_CHANNEL_URL }}
+
+jobs:
+  prepare:
+    uses: ./.github/workflows/prepare.yml
+    secrets: inherit
+
+  android:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout Hongguo module
+        uses: actions/checkout@v4
+        with:
+          repository: guoapp-modules/hongguo
+          path: bundled-modules/hongguo
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: native/go.mod
+          cache-dependency-path: native/go.sum
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36"
+          accept-android-sdk-licenses: true
+      - run: sdkmanager 'ndk;28.2.13676358'
+      - name: Configure Android signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "未配置簽名 Secrets，拒絕發布 debug 簽名的 APK。" >&2
+            exit 1
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - name: Build Android
+        run: python scripts/build_android.py
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      - name: Verify APK signature
+        shell: bash
+        env:
+          CERT_SHA256: ${{ vars.SIGNING_CERT_SHA256 }}
+          CERT_VARIABLE: SIGNING_CERT_SHA256
+        run: |
+          set -euo pipefail
+          expected=$(printf '%s' "$CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
+          if [ -z "$expected" ]; then
+            echo "未設置倉庫變量 $CERT_VARIABLE，無法確認發布證書。" >&2
+            exit 1
+          fi
+          apksigner=$(find "${ANDROID_HOME}/build-tools" -name apksigner -type f 2>/dev/null | sort | tail -n1 || true)
+          if [ -z "$apksigner" ]; then
+            sdkmanager 'build-tools;35.0.0' >/dev/null
+            apksigner=$(find "${ANDROID_HOME}/build-tools" -name apksigner -type f | sort | tail -n1)
+          fi
+          echo "apksigner：$apksigner"
+          "$apksigner" --version || true
+          for apk in dist/android/*.apk; do
+            echo "== $(basename "$apk")"
+            output=$("$apksigner" verify --print-certs "$apk" 2>&1 || true)
+            printf '%s\n' "$output"
+            if ! printf '%s' "$output" | tr -d ':' | tr '[:upper:]' '[:lower:]' | grep "$expected" >/dev/null; then
+              echo "簽名證書與發布證書不一致，已終止。" >&2
+              exit 1
+            fi
+          done
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/android/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: [prepare, android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android
+          path: release
+      - name: Create Android Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          SIGNING_CERT_SHA256: ${{ vars.SIGNING_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          cat > notes.md <<EOF
+          版本 ${VERSION}。安裝包內置紅果站源，其餘站源在 設定 › 站源 › 模組管理 的模組商店安裝。
+
+          Android：
+          - *-arm64-v8a.apk：適用於較新的安卓設備
+          - *-armeabi-v7a.apk：適用於較舊的安卓設備，電視推薦使用此版本
+          - *-x86_64.apk：適用於模擬器
+
+          Android 簽名證書 SHA-256：${SIGNING_CERT_SHA256}
+          EOF
+          changes="$(awk -v heading="## ${VERSION}" '
+            $0 == heading { found = 1; next }
+            found && /^## / { exit }
+            found && !started && /^[[:space:]]*$/ { next }
+            found { started = 1; print }
+          ' CHANGELOG.md)"
+          printf '%s' "$changes" > changes.md
+          if [ -z "$changes" ]; then
+            echo "CHANGELOG.md 中找不到「## ${VERSION}」小節，拒絕發布沒有更新說明的版本。" >&2
+            exit 1
+          fi
+          { printf '更新內容：\n\n%s\n\n' "$changes"; cat notes.md; } > notes.tmp
+          mv notes.tmp notes.md
+          gh release create "$TAG" release/* --target "$GITHUB_SHA" --title "影片庫 ${VERSION} (Android)" --notes-file notes.md
+      - name: Notify Telegram
+        if: ${{ vars.TELEGRAM_BOT_TOKEN != '' && vars.TELEGRAM_CHAT_ID != '' }}
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          changes="$(cat changes.md)"
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
+          text="影片庫 ${VERSION} (Android) 已發布"
+          if [ -n "$changes" ]; then
+            text="$(printf '%s\n\n更新內容：\n\n%s' "$text" "${changes:0:3500}")"
+          fi
+          text="$(printf '%s\n\n下載：%s' "$text" "$url")"
+          curl -fsS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${text}" >/dev/null
