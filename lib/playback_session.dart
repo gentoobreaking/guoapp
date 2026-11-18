@@ -101,6 +101,7 @@ class PlaybackSession extends ChangeNotifier {
         if (!_closed && _openedIndex == _index && position > Duration.zero) {
           _resumePosition = position.inMilliseconds / 1000;
         }
+        _maybeAdvanceEarly(position);
         _sync();
       }),
       stream.playing.listen((playing) {
@@ -209,6 +210,7 @@ class PlaybackSession extends ChangeNotifier {
   Size? _videoSize;
   VideoFit _videoFit = VideoFit.auto;
   bool _switching = false;
+  Player? _previous;
   double _resumePosition = 0;
   double _unmutedVolume = 100;
 
@@ -233,8 +235,9 @@ class PlaybackSession extends ChangeNotifier {
   bool get boostLocked => _boostLocked;
   Size? get videoSize => _videoSize;
 
-  /// 切集换源期间为 true：界面把画面淡出到黑，新集播出后淡回，避免闪黑。
-  bool get switching => _switching;
+  /// 切集换源期间旧一集的播放器：界面把它垫在顶层继续显示（暂停冻结的）最后一帧，
+  /// 新一集在底下出画后撤掉这一层，实现无黑帧的镜头切换。
+  Player? get previousPlayer => _previous;
   double get aspectRatio => switch (_videoSize) {
     final size? => size.width / size.height,
     null => 9 / 16,
@@ -458,6 +461,7 @@ class PlaybackSession extends ChangeNotifier {
         : position < duration - const Duration(seconds: 2)) {
       _queueRecovery('early_completion');
     } else if (_foreground && hasNext && !_sleepAtEpisodeEnd) {
+      DiaryService.add('[Switch] eof 触发自动下一集 pos=$position dur=$duration');
       unawaited(play(_index + 1));
     } else if (_foreground &&
         !_sleepAtEpisodeEnd &&
@@ -475,6 +479,8 @@ class PlaybackSession extends ChangeNotifier {
     _playIntent = false;
     endBoost();
     _switching = false;
+    final previous = _previous;
+    if (previous != null) _discardPrevious(previous);
     unawaited(player.pause());
     unawaited(saveProgress());
   }
@@ -686,16 +692,28 @@ class PlaybackSession extends ChangeNotifier {
     endBoost();
     _staleAudio = false;
     if (index != _index) _online = false;
-    if (!_switching) {
-      _switching = true;
-      _notify();
-    }
     if (recovery == null &&
         position == 0 &&
         _standbyOpen &&
         _standbyIndex == index &&
         !_online) {
+      DiaryService.add(
+        '[Switch] swap 预载交接 → 第${detail.episodes[index].number}集',
+      );
       return _swap(index, playWhenReady);
+    }
+    DiaryService.add(
+      '[Switch] resolve 重开 → 第${detail.episodes[index].number}集'
+      '（standby=${_standbyOpen ? _standbyIndex : '无'}/$index, '
+      'recovery=${recovery?.name ?? '无'}, online=$_online, pos=$position）',
+    );
+    if (!_switching) {
+      _switching = true;
+      _notify();
+    }
+    final stale = _previous;
+    if (stale != null) {
+      _discardPrevious(stale);
     }
     _dropStandby();
     final warmed = recovery == null
@@ -817,7 +835,7 @@ class PlaybackSession extends ChangeNotifier {
         if (!_current(ticket)) return;
         _loading = false;
         _notify();
-        unawaited(_settleSwitch(player));
+        unawaited(_settleSwitch(player, null));
         danmaku.setPlan(plan);
         _syncDanmaku();
       });
@@ -835,6 +853,8 @@ class PlaybackSession extends ChangeNotifier {
             _loginRequired =
                 error is AppFailure && error.code == 'source_login';
             _switching = false;
+            final stale = _previous;
+            if (stale != null) _discardPrevious(stale);
             _error = error is AppFailure ? error.message : '无法播放这一集，请重试或换一集。';
             _notify();
           }
@@ -854,6 +874,9 @@ class PlaybackSession extends ChangeNotifier {
     final previous = _player;
     final previousPlan = _plan;
     final volume = previous.state.volume;
+    // 暂停冻结旧集最后一帧并立即停掉它的声音：暂停不会清空画面，
+    // 旧画面垫在顶层直到新集出画，旧播放器永远不会带着画面走到 eof。
+    unawaited(previous.pause().catchError((Object _) {}));
     unawaited(saveProgress());
     _preloader.clear();
     final ticket = ++_generation;
@@ -879,19 +902,24 @@ class PlaybackSession extends ChangeNotifier {
     _bind();
     _openedIndex = index;
     _acceptErrors = true;
-    final stopping = previous.stop().catchError((Object _) {});
+    if (!_switching) _switching = true;
+    final stale = _previous;
+    if (stale != null && !identical(stale, previous)) {
+      unawaited(stale.stop().catchError((Object _) {}));
+    }
+    _previous = previous;
     if (previousPlan != null) unawaited(_release(previousPlan.session));
     danmaku.setPlan(plan);
     _notify();
+    DiaryService.add('[Switch] 交换完成，旧画面层垫顶');
     _syncDanmaku();
     try {
       await _limitCache(next, false);
       await next.setVolume(volume);
       await _setRate(_rate);
-      await stopping;
       await _selectAudio(next, true);
       if (_current(ticket) && _foreground && _playIntent) await next.play();
-      unawaited(_settleSwitch(next));
+      unawaited(_settleSwitch(next, previous));
     } catch (_) {
       if (_current(ticket)) _queueRecovery('open_exception');
     }
@@ -900,13 +928,11 @@ class PlaybackSession extends ChangeNotifier {
   void _prime() {
     final standby = _standby;
     final next = _index + 1;
-    if (_closed ||
-        standby == null ||
-        _standbyIndex >= 0 ||
-        !_preloader.ready ||
-        next >= detail.episodes.length) {
+    if (_closed || standby == null || _standbyIndex >= 0 || !_preloader.ready) {
       return;
     }
+    if (next >= detail.episodes.length) return;
+    if (_switching || _previous != null) return; // 交接期旧播放器还在出画，不能开新档
     _standbyIndex = next;
     final plan = _preloader.take(
       detail.drama,
@@ -924,6 +950,10 @@ class PlaybackSession extends ChangeNotifier {
 
   Future<void> _open(Player standby, PlaybackPlan plan) async {
     try {
+      DiaryService.add(
+        '[Preload] 开档 standby → 第${detail.episodes[_standbyIndex].number}集'
+        '（${plan.local ? '本地' : '在线'}，${plan.url}）',
+      );
       await _configure(standby, plan);
       await _limitCache(standby, true);
       await _selectAudio(standby, false);
@@ -931,13 +961,15 @@ class PlaybackSession extends ChangeNotifier {
         Media(plan.url, httpHeaders: plan.headers),
         play: false,
       );
-    } catch (_) {
+    } catch (error) {
+      DiaryService.add('[Preload] standby 开档失败：$error');
       if (identical(_standbyPlan, plan)) _dropStandby();
       return;
     }
     if (_closed || !identical(_standbyPlan, plan)) return;
     _standbyOpen = true;
     _standbyAt = DateTime.now();
+    DiaryService.add('[Preload] standby 已就绪');
     _notify();
   }
 
@@ -951,18 +983,74 @@ class PlaybackSession extends ChangeNotifier {
     if (plan != null) unawaited(_release(plan.session));
   }
 
-  /// 等新集真正播出画面后再淡回画面（最多等约 2.4 秒）。
-  Future<void> _settleSwitch(Player next) async {
-    for (var i = 0; i < 30; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 80));
-      if (_closed || !identical(_player, next)) return;
-      if (next.state.playing && next.state.position > Duration.zero) break;
-    }
+  /// 先撤掉旧画面层（下一帧生效），再延迟停掉旧播放器。
+  /// mpv stop 会清空它的输出画面，层还挂在树上时停止会采到清空中的表面（花屏一两帧）。
+  void _discardPrevious(Player previous) {
+    if (identical(_previous, previous)) _previous = null;
+    _notify();
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      if (_closed) return;
+      await previous.stop().catchError((Object _) {});
+    }());
+  }
+
+  /// 等新集真正出画后再交接：撤掉旧画面层（露出底下已在合成的新集）、停掉旧播放器。
+  /// 新集迟迟未出画时保留旧画面层——暂停冻结的最后一帧好过黑屏，最长约 4 秒。
+  Future<void> _settleSwitch(Player next, Player? previous) async {
+    final watch = Stopwatch()..start();
+    final rendered = await _awaitRendered(next, 49);
     if (_closed || !identical(_player, next)) return;
-    if (_switching) {
-      _switching = false;
-      _notify();
+    if (previous != null) _discardPrevious(previous);
+    _switching = false;
+    _notify();
+    DiaryService.add(
+      '[Switch] 交接${rendered ? '完成' : '超时未出画'}，撤旧层（${watch.elapsedMilliseconds}ms）',
+    );
+  }
+
+  /// 轮询等待新集出画（已加载且按意图播放中位置前进），每次 80ms。
+  Future<bool> _awaitRendered(Player next, int tries) async {
+    for (var i = 0; i < tries; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      if (_closed || !identical(_player, next)) return false;
+      final state = next.state;
+      final flowing = state.playing && state.position > Duration.zero;
+      if (state.duration > Duration.zero && (!_playIntent || flowing)) {
+        return true;
+      }
     }
+    return false;
+  }
+
+  /// 集尾提前交接：预载就绪时在旧集结束前就完成换源。
+  /// 旧播放器走到 eof 后硬解可能清空画面，而暂停只是冻结最后一帧——
+  /// 提前暂停旧集、垫在顶层，就永远不会带着画面到达可见的 eof。
+  void _maybeAdvanceEarly(Duration position) {
+    if (_closed ||
+        _switching ||
+        _previous != null ||
+        _error != null ||
+        _loading ||
+        !_acceptErrors ||
+        _sleepAtEpisodeEnd ||
+        !_foreground ||
+        !hasNext ||
+        !_standbyOpen ||
+        _standbyIndex != _index + 1 ||
+        _online) {
+      return;
+    }
+    final state = player.state;
+    final duration = state.duration;
+    if (duration <= Duration.zero ||
+        !state.playing ||
+        state.completed ||
+        position < duration - const Duration(milliseconds: 600)) {
+      return;
+    }
+    DiaryService.add('[Switch] 集尾提前交接 pos=${state.position} dur=$duration');
+    unawaited(play(_index + 1));
   }
 
   Future<void> _limitCache(Player target, bool limited) async {
@@ -1360,6 +1448,7 @@ class PlaybackSession extends ChangeNotifier {
     _closed = true;
     _generation++;
     _switching = false;
+    _previous = null;
     AppDevice.removeDeviceHandler(_onDeviceCall);
     unawaited(AppDevice.abandonAudioFocus());
     store.removeListener(_accessChanged);
