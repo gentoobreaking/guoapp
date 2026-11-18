@@ -2,6 +2,9 @@ name: Build app packages
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -39,19 +42,18 @@ jobs:
           cache: true
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test
-        continue-on-error: true
       - run: dart analyze --fatal-infos lib test
-        continue-on-error: true
-      # 测试当前不阻塞出包（开发优先、集中验证暂缓），结果仍会显示在运行详情里。
+      # 仅测试不阻塞出包（开发优先、集中验证暂缓）；format / analyze / go test 均会阻断，结果仍显示在运行详情里。
       - run: flutter test --dart-define=DISABLE_REMOTE_IMAGES=true
         continue-on-error: true
       - run: flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true
         continue-on-error: true
       - run: go test -race ./...
         working-directory: native
-        continue-on-error: true
 
   prepare:
+    # 发布链只在手动触发（main 分支）时执行；PR 只跑 checks。
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -306,10 +308,12 @@ jobs:
             found { started = 1; print }
           ' CHANGELOG.md)"
           printf '%s' "$changes" > changes.md
-          if [ -n "$changes" ]; then
-            { printf '更新内容：\n\n%s\n\n' "$changes"; cat notes.md; } > notes.tmp
-            mv notes.tmp notes.md
+          if [ -z "$changes" ]; then
+            echo "CHANGELOG.md 中找不到「## ${VERSION}」小节，拒绝发布没有更新说明的版本。" >&2
+            exit 1
           fi
+          { printf '更新内容：\n\n%s\n\n' "$changes"; cat notes.md; } > notes.tmp
+          mv notes.tmp notes.md
           gh release create "$TAG" release/* --target "$GITHUB_SHA" --title "小果影视 ${VERSION}" --notes-file notes.md
       - name: 推送到 Telegram 频道
         continue-on-error: true
