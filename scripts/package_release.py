@@ -250,7 +250,7 @@ elif options.platform == 'windows':
     artifacts.append(target)
     artifacts.append(package_windows_installer(bundle, bundle_executable))
 else:
-    application = root / 'build' / 'macos' / 'Build' / 'Products' / 'Release' / 'duanju_app.app'
+    application = root / 'build' / 'macos' / 'Build' / 'Products' / 'Release' / 'videoapp.app'
     if not application.is_dir():
         raise SystemExit('缺少 macOS 应用：' + str(application))
     verify_macos_application(application)

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:duanju_app/source_modules.dart';
+import 'package:videoapp/source_modules.dart';
 
 void main() {
   test('module index offers only newer versions', () {

@@ -1,5 +1,5 @@
-import 'package:duanju_app/models.dart';
-import 'package:duanju_app/source_catalog.dart';
+import 'package:videoapp/models.dart';
+import 'package:videoapp/source_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fakes.dart';

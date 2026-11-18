@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:duanju_app/follow_state.dart';
-import 'package:duanju_app/local_files.dart';
-import 'package:duanju_app/local_profiles.dart';
-import 'package:duanju_app/local_snapshot.dart';
-import 'package:duanju_app/local_store.dart';
-import 'package:duanju_app/models.dart';
-import 'package:duanju_app/playback_preferences.dart';
-import 'package:duanju_app/theme_color.dart';
+import 'package:videoapp/follow_state.dart';
+import 'package:videoapp/local_files.dart';
+import 'package:videoapp/local_profiles.dart';
+import 'package:videoapp/local_snapshot.dart';
+import 'package:videoapp/local_store.dart';
+import 'package:videoapp/models.dart';
+import 'package:videoapp/playback_preferences.dart';
+import 'package:videoapp/theme_color.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 

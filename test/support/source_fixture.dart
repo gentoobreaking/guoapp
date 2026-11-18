@@ -1,4 +1,4 @@
-import 'package:duanju_app/models.dart';
+import 'package:videoapp/models.dart';
 
 const allSourcesEnabled = !bool.fromEnvironment('ONLY_HONGGUO');
 

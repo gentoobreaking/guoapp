@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:duanju_app/core_bridge.dart';
-import 'package:duanju_app/diary_service.dart';
-import 'package:duanju_app/download_converter.dart';
-import 'package:duanju_app/download_overview.dart';
-import 'package:duanju_app/media_pipeline.dart';
-import 'package:duanju_app/models.dart';
+import 'package:videoapp/core_bridge.dart';
+import 'package:videoapp/diary_service.dart';
+import 'package:videoapp/download_converter.dart';
+import 'package:videoapp/download_overview.dart';
+import 'package:videoapp/media_pipeline.dart';
+import 'package:videoapp/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fakes.dart';

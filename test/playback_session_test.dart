@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-import 'package:duanju_app/core_bridge.dart';
-import 'package:duanju_app/local_store.dart';
-import 'package:duanju_app/models.dart';
-import 'package:duanju_app/playback_session.dart';
+import 'package:videoapp/core_bridge.dart';
+import 'package:videoapp/local_store.dart';
+import 'package:videoapp/models.dart';
+import 'package:videoapp/playback_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 

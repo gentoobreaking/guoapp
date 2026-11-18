@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:duanju_app/playback_preferences.dart';
+import 'package:videoapp/playback_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

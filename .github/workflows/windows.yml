@@ -97,7 +97,7 @@ jobs:
 
           Windows：
           - *-windows-x64-setup.exe：安裝包，默認安裝到當前用戶，無需管理員權限；安裝時可改為所有用戶
-          - *-windows-x64.zip：便攜版，解壓後運行 guoapp.exe；設置、記錄、海報緩存和默認下載都保存在程序旁的 userdata 目錄，升級時把舊版的 userdata 目錄複製過來即可
+          - *-windows-x64.zip：便攜版，解壓後運行 videoapp.exe；設置、記錄、海報緩存和默認下載都保存在程序旁的 userdata 目錄，升級時把舊版的 userdata 目錄複製過來即可
           EOF
           changes="$(awk -v heading="## ${VERSION}" '
             $0 == heading { found = 1; next }

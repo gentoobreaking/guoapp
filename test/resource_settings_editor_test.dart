@@ -1,6 +1,6 @@
-import 'package:duanju_app/core_bridge.dart';
-import 'package:duanju_app/resource_settings.dart';
-import 'package:duanju_app/resource_settings_editor.dart';
+import 'package:videoapp/core_bridge.dart';
+import 'package:videoapp/resource_settings.dart';
+import 'package:videoapp/resource_settings_editor.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fakes.dart';

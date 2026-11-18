@@ -1,4 +1,4 @@
-import 'package:duanju_app/download_export.dart';
+import 'package:videoapp/download_export.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

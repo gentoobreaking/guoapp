@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:duanju_app/local_profiles.dart';
-import 'package:duanju_app/local_store.dart';
-import 'package:duanju_app/models.dart';
+import 'package:videoapp/local_profiles.dart';
+import 'package:videoapp/local_store.dart';
+import 'package:videoapp/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fakes.dart';

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:duanju_app/drama_feed.dart';
-import 'package:duanju_app/models.dart';
+import 'package:videoapp/drama_feed.dart';
+import 'package:videoapp/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fakes.dart';

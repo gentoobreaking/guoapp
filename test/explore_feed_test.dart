@@ -1,6 +1,6 @@
-import 'package:duanju_app/explore_feed.dart';
-import 'package:duanju_app/local_store.dart';
-import 'package:duanju_app/ranking_models.dart';
+import 'package:videoapp/explore_feed.dart';
+import 'package:videoapp/local_store.dart';
+import 'package:videoapp/ranking_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fakes.dart';

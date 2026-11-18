@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:duanju_app/windows_data_migration.dart';
+import 'package:videoapp/windows_data_migration.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
