@@ -101,7 +101,7 @@ func (p *jsProvider) hostUtilities(instance *jsInstance) map[string]any {
 			}
 		},
 		"finishMedia": func(media jsMedia) (jsMedia, error) {
-			finished, err := p.host.FinishMedia(instance.ctx, media.providerMedia(), p.module.manifest.ID)
+			finished, err := p.host.FinishMedia(withMediaAddressChecker(instance.ctx, p.allowedAddress), media.providerMedia(), p.module.manifest.ID)
 			return moduleMedia(finished), err
 		},
 		"catalogContext": func() jsCatalogContext {

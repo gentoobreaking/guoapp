@@ -411,7 +411,7 @@ func (p *jsProvider) hostObject(instance *jsInstance) *goja.Object {
 			return value
 		},
 		"prepareWebMedia": func(media jsMedia, sourceName string) (jsMedia, error) {
-			prepared, err := p.host.PrepareWebMedia(instance.ctx, media.providerMedia(), sourceName)
+			prepared, err := p.host.PrepareWebMedia(withMediaAddressChecker(instance.ctx, p.allowedAddress), media.providerMedia(), sourceName)
 			return moduleMedia(prepared), err
 		},
 		"loadState": func(name string) (string, error) {
@@ -477,8 +477,11 @@ func (p *jsProvider) allowedAddress(raw string) error {
 }
 
 func (p *jsProvider) fetchPlaylist(ctx context.Context, request jsPlaylistRequest) (jsPlaylist, error) {
+	if err := p.allowedAddress(request.URL); err != nil {
+		return jsPlaylist{}, err
+	}
 	media := jsMedia{Credentials: request.Credentials}.providerMedia()
-	playlist, address, err := p.host.FetchPlaylist(ctx, request.URL, request.Referer, media.Credentials)
+	playlist, address, err := p.host.FetchPlaylist(withMediaAddressChecker(ctx, p.allowedAddress), request.URL, request.Referer, media.Credentials)
 	return jsPlaylist{Playlist: playlist, URL: address, DurationMS: M3u8Duration(playlist).Milliseconds()}, err
 }
 
