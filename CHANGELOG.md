@@ -2,6 +2,29 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 1.0.0+1
+
+### 重大變更
+- **應用更名**：中文名「小果影視」→「影片庫」，英文名「GuoApp」→「VideoApp」
+- **包名變更**：`com.guoapp.app` → `com.videoapp.app`（舊版無法覆蓋安裝，需重裝並手動遷移備份）
+- **安裝包前綴**：`guoapp-` → `videoapp-`
+- **Windows 可執行檔**：`guoapp.exe` → `videoapp.exe`
+- **Build slug**：`guoapp` → `videoapp`
+- **更新服務**：Worker `guoapp-update` → `videoapp-update`，D1 `guoapp-stats` → `videoapp-stats`
+- **應用圖示**：全平台換為 Gentoo Logo，新增 Android TV Banner (320×180)
+
+### 核心優化
+- CI 恢復 `dart format/analyze`、`go test -race` 阻斷，新增 PR 觸發器與 CHANGELOG 缺失校驗
+- FFI 邊界與所有後台 goroutine 補上 panic 防線（僅記診斷、不 abort 宿主）
+- 模組媒體出口統一下沉 host allowlist，並攔截重定向，堵住 SSRF
+- `moveDownloads`/`deleteAllData` 改為後台 job + 輪詢，解除 620s 全域鎖
+- `rememberDramaQuality` 400ms debounce 合併寫檔，LocalStore 拆細分通知器降低重建
+
+### 介面改進
+- 設定分組從 8 組修正為 9 組（外觀、播放、彈幕、下載、存儲、代理、用戶、關於、診斷）
+- 修正 README 設定組數與 Go 版本要求 (1.26.0+)
+- 新增 `.fvmrc` 鎖定 Flutter 3.47.9、新增 `packages/PATCHES.md` 記錄 fork 依賴
+
 ## 2.0.1+113
 
 - 修复红果取流失败，适配新的播放器接口与 v5 签名（#165，开发快照，需在客户端实测播放、切集和下载）。
