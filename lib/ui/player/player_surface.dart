@@ -326,21 +326,15 @@ class _PlayerSurfaceState extends State<PlayerSurface> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 新一集垫在底层：交接期间被旧画面盖住，但每帧都在合成，撤掉旧层后立即露出。
-            if (_session.previousPlayer != null)
-              PlayerVideo(
+            AnimatedOpacity(
+              opacity: _session.switching ? 0 : 1,
+              duration: _session.switching ? Motion.short : Motion.medium,
+              child: PlayerVideo(
                 key: ValueKey(_session.player),
                 handle: widget.handle,
                 player: _session.player,
                 fit: _session.videoFit,
               ),
-            // 顶层：平时是当前集；交接期间是旧集暂停冻结的最后一帧。
-            // widget 结构在交换前后完全一致（key 平移复用），不拆除重建、不闪黑。
-            PlayerVideo(
-              key: ValueKey(_session.previousPlayer ?? _session.player),
-              handle: widget.handle,
-              player: _session.previousPlayer ?? _session.player,
-              fit: _session.videoFit,
             ),
             DanmakuOverlay(
               controller: _session.danmaku,
