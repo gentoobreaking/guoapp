@@ -52,9 +52,7 @@ class PlaybackPreloader extends ChangeNotifier {
           (sum, entry) => sum + entry.plan.prefetchedBytes,
         );
         if (fresh.first.plan.local) {
-          return fresh.length > 1
-              ? '已预载 ${fresh.length} 集 · 本地已下载'
-              : '下一集已下载';
+          return fresh.length > 1 ? '已预载 ${fresh.length} 集 · 本地已下载' : '下一集已下载';
         }
         return bytes > 0
             ? '已预载 ${fresh.length} 集 · 预取 ${(bytes / 1024).ceil()} KB'
@@ -195,7 +193,12 @@ class PlaybackPreloader extends ChangeNotifier {
   }
 
   /// 切集后丢弃已观看（含回跳跳过）集数的计划，保留仍在观看顺序之后的计划。
-  void advance(Drama drama, int number, {int quality = 0, bool online = false}) {
+  void advance(
+    Drama drama,
+    int number, {
+    int quality = 0,
+    bool online = false,
+  }) {
     if (_closed) return;
     if (_base != _baseKey(drama, quality, online)) {
       clear();

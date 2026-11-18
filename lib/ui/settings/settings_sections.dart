@@ -49,7 +49,14 @@ const _noDownload = '当前用户没有下载权限';
 const _proxyModes = {'auto': '自动', 'direct': '直连', 'manual': '手动代理'};
 const _counts = {1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6'};
 const _segmentCounts = {
-  1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
+  1: '1',
+  2: '2',
+  3: '3',
+  4: '4',
+  5: '5',
+  6: '6',
+  7: '7',
+  8: '8',
 };
 const _prefetchLimits = {4194304: '4 MB', 8388608: '8 MB', 16777216: '16 MB'};
 const _preloadCounts = {1: '1 集', 2: '2 集', 3: '3 集', 4: '4 集', 5: '5 集'};
@@ -289,9 +296,8 @@ class SettingsSection extends StatelessWidget {
                 ? '按观看顺序把接下来的集数提前下载到下载目录，弱网或断网也能连续观看'
                 : '开启后预载改为完整下载到磁盘，需要较多存储空间与流量',
             value: preferences.preloadDownload,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(preloadDownload: value),
-            ),
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(preloadDownload: value)),
           ),
           ValueTile<int>(
             title: '预加载集数',

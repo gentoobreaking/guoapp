@@ -273,11 +273,7 @@ class ExplorePageState extends State<ExplorePage> {
       spacing: 8,
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        chip(0, '全部画质'),
-        chip(720, '720P+'),
-        chip(1080, '1080P'),
-      ],
+      children: [chip(0, '全部画质'), chip(720, '720P+'), chip(1080, '1080P')],
     );
   }
 
@@ -292,12 +288,12 @@ class ExplorePageState extends State<ExplorePage> {
     final filter = widget.store.qualityFilter;
     final items = filter > 0
         ? explore.items
-            .where(
-              (drama) =>
-                  (widget.store.dramaQuality(drama.source, drama.id) ?? 0) >=
-                  filter,
-            )
-            .toList()
+              .where(
+                (drama) =>
+                    (widget.store.dramaQuality(drama.source, drama.id) ?? 0) >=
+                    filter,
+              )
+              .toList()
         : explore.items;
     if (feed.items.isEmpty) {
       return FadeSwitcher(child: _status(feed));

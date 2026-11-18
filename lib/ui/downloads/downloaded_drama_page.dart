@@ -256,11 +256,12 @@ class _DownloadedDramaPageState extends State<DownloadedDramaPage> {
               ),
       );
 
-  double _inset(BuildContext context) => switch (AppScope.formFactorOf(context)) {
-    FormFactor.phone => 16.0,
-    FormFactor.television => televisionInset,
-    _ => 24.0,
-  };
+  double _inset(BuildContext context) =>
+      switch (AppScope.formFactorOf(context)) {
+        FormFactor.phone => 16.0,
+        FormFactor.television => televisionInset,
+        _ => 24.0,
+      };
 
   Widget _fillButton(Drama drama, {bool icon = true}) => _textButton(
     '补齐缺集',

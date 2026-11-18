@@ -100,12 +100,16 @@ class LocalStore extends ChangeNotifier {
   /// 细分通知器：迁移后的页面只订阅自己关心的变更（见各 _notify* 调用点）。
   /// 设置与外观 flag 的变更；搜索记录、画质筛选、播放偏好等都走这里。
   final StoreSection settingsUpdates = StoreSection();
+
   /// 权限与站源可用性（用户切换、锁定、站源开关、profile 变更、epoch 变更）。
   final StoreSection permissionUpdates = StoreSection();
+
   /// 追剧收藏与追剧状态。
   final StoreSection favoriteUpdates = StoreSection();
+
   /// 观看历史。
   final StoreSection historyUpdates = StoreSection();
+
   /// 已学习的剧集画质与画质筛选（rememberDramaQuality 已合并为 400ms 一发）。
   final StoreSection qualityUpdates = StoreSection();
   Timer? _qualityTimer;

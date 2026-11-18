@@ -484,7 +484,12 @@ class _DownloadsPageState extends State<DownloadsPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(_inset(context) - 12, 8, _inset(context), 8),
+            padding: EdgeInsets.fromLTRB(
+              _inset(context) - 12,
+              8,
+              _inset(context),
+              8,
+            ),
             child: SizedBox(
               height: 48,
               child: Row(
@@ -575,11 +580,12 @@ class _DownloadsPageState extends State<DownloadsPage>
     ),
   );
 
-  double _inset(BuildContext context) => switch (AppScope.formFactorOf(context)) {
-    FormFactor.phone => 16.0,
-    FormFactor.television => televisionInset,
-    _ => 24.0,
-  };
+  double _inset(BuildContext context) =>
+      switch (AppScope.formFactorOf(context)) {
+        FormFactor.phone => 16.0,
+        FormFactor.television => televisionInset,
+        _ => 24.0,
+      };
 
   Widget _chipsSlot(BuildContext context, Widget? chips) => AnimatedSize(
     duration: Motion.of(context, Motion.short),

@@ -523,10 +523,7 @@ class NativeRepository extends AppRepository {
     await BackgroundDownloads.ensureStarted();
     await workLease('storage', 'start');
     try {
-      await _call({
-        'action': 'moveDownloads',
-        'directory': directory,
-      });
+      await _call({'action': 'moveDownloads', 'directory': directory});
       final status = await _waitForDataJob();
       final failed = status['failed'] as String? ?? '';
       if (failed.isNotEmpty) throw AppFailure(failed);
