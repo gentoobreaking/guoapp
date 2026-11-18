@@ -178,6 +178,7 @@ func (manager *nativeDownloads) downloadAssetsParallel(
 	for worker := 0; worker < workers; worker++ {
 		wg.Add(1)
 		go func() {
+			defer guardBackground(manager.engine.downloader, "download.transfer")
 			defer wg.Done()
 			for index := range work {
 				asset := assets[index]

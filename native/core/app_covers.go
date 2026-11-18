@@ -137,7 +137,10 @@ func (cache *nativeCoverCache) loadAddress(ctx context.Context, drama LibraryDra
 		}
 		call = &nativeCoverCall{done: make(chan struct{})}
 		cache.pending[key] = call
-		go cache.fetch(key, drama, referer, fallback, call)
+		go func() {
+			defer guardBackground(cache.downloader, "cover.fetch")
+			cache.fetch(key, drama, referer, fallback, call)
+		}()
 	}
 	cache.mu.Unlock()
 	select {

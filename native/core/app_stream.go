@@ -75,7 +75,10 @@ func (stream *nativeStreamServer) lanOrigin(device string) (string, error) {
 		}
 		stream.lan = &http.Server{Handler: stream.server.Handler, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
 		stream.lanPort = listener.Addr().(*net.TCPAddr).Port
-		go func(server *http.Server) { _ = server.Serve(listener) }(stream.lan)
+		go func(server *http.Server) {
+			defer guardBackground(stream.downloader, "stream.lan")
+			_ = server.Serve(listener)
+		}(stream.lan)
 	}
 	return "http://" + net.JoinHostPort(host, strconv.Itoa(stream.lanPort)), nil
 }
@@ -126,7 +129,10 @@ func newNativeStreamServer(d *Downloader) (*nativeStreamServer, error) {
 	stream := &nativeStreamServer{downloader: d, address: "http://" + listener.Addr().String(), sessions: map[string]*nativeStreamSession{}}
 	server := &http.Server{Handler: http.HandlerFunc(stream.nativeServe), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
 	stream.server = server
-	go func() { _ = server.Serve(listener) }()
+	go func() {
+		defer guardBackground(d, "stream.native")
+		_ = server.Serve(listener)
+	}()
 	return stream, nil
 }
 

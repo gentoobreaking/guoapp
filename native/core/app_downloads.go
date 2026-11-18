@@ -451,7 +451,10 @@ func (manager *nativeDownloads) scheduleLocked() {
 		}
 		copy := next.nativeDownloadJob
 		manager.workers.Add(1)
-		go manager.run(ctx, copy)
+		go func() {
+			defer guardBackground(manager.engine.downloader, "download.worker")
+			manager.run(ctx, copy)
+		}()
 	}
 }
 

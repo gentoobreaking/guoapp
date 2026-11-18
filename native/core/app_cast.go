@@ -74,7 +74,7 @@ func castLocation(packet []byte) string {
 	return ""
 }
 
-func castSearchLocations(ctx context.Context) []string {
+func (engine *nativeEngine) castSearchLocations(ctx context.Context) []string {
 	bind := []net.IP{nil}
 	if addresses, err := net.InterfaceAddrs(); err == nil {
 		for _, address := range addresses {
@@ -97,6 +97,7 @@ func castSearchLocations(ctx context.Context) []string {
 		}
 		group.Add(1)
 		go func() {
+			defer guardBackground(engine.downloader, "cast.ssdp")
 			defer group.Done()
 			defer conn.Close()
 			stop := context.AfterFunc(ctx, func() { _ = conn.SetReadDeadline(time.Now()) })
@@ -182,12 +183,13 @@ func castDescribe(ctx context.Context, location string) (castDevice, error) {
 }
 
 func (engine *nativeEngine) castDiscover(ctx context.Context) []castDevice {
-	locations := castSearchLocations(ctx)
+	locations := engine.castSearchLocations(ctx)
 	devices := make([]castDevice, len(locations))
 	var group sync.WaitGroup
 	for index, location := range locations {
 		group.Add(1)
 		go func() {
+			defer guardBackground(engine.downloader, "cast.describe")
 			defer group.Done()
 			devices[index], _ = castDescribe(ctx, location)
 		}()
