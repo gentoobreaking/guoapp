@@ -53,7 +53,7 @@ export default {
       {
         headers: {
           Accept: 'application/vnd.github+json',
-          'User-Agent': 'guoapp-update',
+          'User-Agent': 'videoapp-update',
         },
       },
     );
