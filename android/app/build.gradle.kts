@@ -37,7 +37,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["appLabel"] = "小果影视"
+        manifestPlaceholders["appLabel"] = "影片庫"
         manifestPlaceholders["appBanner"] = "@drawable/tv_banner"
     }
 

@@ -1,2 +1,2 @@
-const appName = '小果影视';
+const appName = '影片庫';
 const appSlug = 'guoapp';

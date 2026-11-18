@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="小果影视 icon">
+<img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫 icon">
 
-# 小果影视 (GuoApp)
+# 影片庫 (GuoApp)
 
 A Flutter short-drama streaming app, with dedicated layouts for phones, tablets, desktops and TVs.
 
@@ -109,7 +109,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for other platforms, module bundling (`--bu
 > For macOS, run before first launch:
 >
 > ```sh
-> xattr -dr com.apple.quarantine /Applications/小果影视.app
+> xattr -dr com.apple.quarantine /Applications/影片庫.app
 > ```
 
 ## Update checks & anonymous statistics

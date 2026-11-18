@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="小果影视图标">
+<img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫圖標">
 
-# 小果影视 (GuoApp)
+# 影片庫 (GuoApp)
 
 Flutter 多端独立影视应用，手机、平板、电脑和电视分别适配
 
@@ -109,7 +109,7 @@ python3 scripts/build_android.py                                     # 三种架
 > macOS 首次打开前在终端执行：
 >
 > ```sh
-> xattr -dr com.apple.quarantine /Applications/小果影视.app
+> xattr -dr com.apple.quarantine /Applications/影片庫.app
 > ```
 
 ## 检查更新与使用统计
