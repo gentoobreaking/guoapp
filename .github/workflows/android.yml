@@ -131,7 +131,6 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ needs.prepare.outputs.tag }}-android
           SIGNING_CERT_SHA256: ${{ vars.SIGNING_CERT_SHA256 }}
-          SIGNING_CERT_SHA256: ${{ vars.SIGNING_CERT_SHA256 }}
         run: |
           set -euo pipefail
           cat > notes.md <<EOF
