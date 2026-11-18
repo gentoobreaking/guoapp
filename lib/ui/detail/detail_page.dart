@@ -278,7 +278,6 @@ class _DetailPageState extends State<DetailPage> {
           details.episodes.first,
           quality: widget.store.playbackPreferences.quality,
         );
-        if (plan == null) return;
         widget.store.rememberDramaQuality(
           drama.source,
           drama.id,

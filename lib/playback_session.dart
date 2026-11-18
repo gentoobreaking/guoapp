@@ -208,6 +208,7 @@ class PlaybackSession extends ChangeNotifier {
   bool _danmakuEnabled = true;
   Size? _videoSize;
   VideoFit _videoFit = VideoFit.auto;
+  bool _switching = false;
   double _resumePosition = 0;
   double _unmutedVolume = 100;
 
@@ -231,6 +232,9 @@ class PlaybackSession extends ChangeNotifier {
   bool get boosting => _boosting;
   bool get boostLocked => _boostLocked;
   Size? get videoSize => _videoSize;
+
+  /// 切集换源期间为 true：界面把画面淡出到黑，新集播出后淡回，避免闪黑。
+  bool get switching => _switching;
   double get aspectRatio => switch (_videoSize) {
     final size? => size.width / size.height,
     null => 9 / 16,
@@ -243,9 +247,11 @@ class PlaybackSession extends ChangeNotifier {
   bool get sleepAtEpisodeEnd => _sleepAtEpisodeEnd;
   int get quality => _quality;
   bool get local => _plan?.local == true;
+
   /// 清晰度菜单选项：只列出 720P 及以上；「自动」仍会回退到低画质，不受影响。
-  List<int> get qualities =>
-      (_plan?.qualities ?? const []).where((quality) => quality >= 720).toList();
+  List<int> get qualities => (_plan?.qualities ?? const [])
+      .where((quality) => quality >= 720)
+      .toList();
   bool get danmakuSupported => SourceSite.byId(detail.drama.source).danmaku;
   bool get danmakuEnabled => _danmakuEnabled;
   PlaybackPreferences get preferences => _preferences;
@@ -381,9 +387,11 @@ class PlaybackSession extends ChangeNotifier {
     }
     final count = store.playbackPreferences.preloadCount;
     final upcoming = [
-      for (var i = _index + 1;
-          i < detail.episodes.length && i <= _index + count;
-          i++)
+      for (
+        var i = _index + 1;
+        i < detail.episodes.length && i <= _index + count;
+        i++
+      )
         detail.episodes[i],
     ];
     _preloader.prepare(
@@ -415,9 +423,11 @@ class PlaybackSession extends ChangeNotifier {
     final preferences = store.downloadPreferences;
     final count = store.playbackPreferences.preloadCount;
     final targets = [
-      for (var i = _index + 1;
-          i < detail.episodes.length && i <= _index + count;
-          i++)
+      for (
+        var i = _index + 1;
+        i < detail.episodes.length && i <= _index + count;
+        i++
+      )
         if (!_autoDownloadQueued.contains(detail.episodes[i].number) &&
             (preferences.includeVip || !detail.episodes[i].vip))
           detail.episodes[i],
@@ -427,7 +437,7 @@ class PlaybackSession extends ChangeNotifier {
     unawaited(
       repository
           .enqueueDownloads(detail, targets, quality: preferences.quality)
-          .catchError((Object _) {}),
+          .catchError((Object _) => 0),
     );
   }
 
@@ -464,6 +474,7 @@ class PlaybackSession extends ChangeNotifier {
   void _stop() {
     _playIntent = false;
     endBoost();
+    _switching = false;
     unawaited(player.pause());
     unawaited(saveProgress());
   }
@@ -675,6 +686,10 @@ class PlaybackSession extends ChangeNotifier {
     endBoost();
     _staleAudio = false;
     if (index != _index) _online = false;
+    if (!_switching) {
+      _switching = true;
+      _notify();
+    }
     if (recovery == null &&
         position == 0 &&
         _standbyOpen &&
@@ -802,6 +817,7 @@ class PlaybackSession extends ChangeNotifier {
         if (!_current(ticket)) return;
         _loading = false;
         _notify();
+        unawaited(_settleSwitch(player));
         danmaku.setPlan(plan);
         _syncDanmaku();
       });
@@ -818,6 +834,7 @@ class PlaybackSession extends ChangeNotifier {
             _localFailure = error is AppFailure && error.code == 'local_media';
             _loginRequired =
                 error is AppFailure && error.code == 'source_login';
+            _switching = false;
             _error = error is AppFailure ? error.message : '无法播放这一集，请重试或换一集。';
             _notify();
           }
@@ -874,6 +891,7 @@ class PlaybackSession extends ChangeNotifier {
       await stopping;
       await _selectAudio(next, true);
       if (_current(ticket) && _foreground && _playIntent) await next.play();
+      unawaited(_settleSwitch(next));
     } catch (_) {
       if (_current(ticket)) _queueRecovery('open_exception');
     }
@@ -931,6 +949,20 @@ class PlaybackSession extends ChangeNotifier {
     _standbyOpen = false;
     if (opened) unawaited(_standby?.stop().catchError((Object _) {}));
     if (plan != null) unawaited(_release(plan.session));
+  }
+
+  /// 等新集真正播出画面后再淡回画面（最多等约 2.4 秒）。
+  Future<void> _settleSwitch(Player next) async {
+    for (var i = 0; i < 30; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      if (_closed || !identical(_player, next)) return;
+      if (next.state.playing && next.state.position > Duration.zero) break;
+    }
+    if (_closed || !identical(_player, next)) return;
+    if (_switching) {
+      _switching = false;
+      _notify();
+    }
   }
 
   Future<void> _limitCache(Player target, bool limited) async {
@@ -1327,6 +1359,7 @@ class PlaybackSession extends ChangeNotifier {
     unawaited(saveProgress());
     _closed = true;
     _generation++;
+    _switching = false;
     AppDevice.removeDeviceHandler(_onDeviceCall);
     unawaited(AppDevice.abandonAudioFocus());
     store.removeListener(_accessChanged);

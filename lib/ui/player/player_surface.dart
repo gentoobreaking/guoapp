@@ -326,11 +326,15 @@ class _PlayerSurfaceState extends State<PlayerSurface> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            PlayerVideo(
-              key: ValueKey(_session.player),
-              handle: widget.handle,
-              player: _session.player,
-              fit: _session.videoFit,
+            AnimatedOpacity(
+              opacity: _session.switching ? 0 : 1,
+              duration: _session.switching ? Motion.short : Motion.medium,
+              child: PlayerVideo(
+                key: ValueKey(_session.player),
+                handle: widget.handle,
+                player: _session.player,
+                fit: _session.videoFit,
+              ),
             ),
             DanmakuOverlay(
               controller: _session.danmaku,

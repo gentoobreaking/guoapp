@@ -277,9 +277,7 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
         () => _startDownload([episodes[index + 1]]),
       ),
       (
-        remaining.isEmpty
-            ? '下载剩余未看 · 没有剩余'
-            : '下载剩余未看 · ${remaining.length} 集',
+        remaining.isEmpty ? '下载剩余未看 · 没有剩余' : '下载剩余未看 · ${remaining.length} 集',
         remaining.isNotEmpty,
         () => _startDownload(remaining),
       ),
@@ -311,10 +309,9 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
                       title: Text(
                         option.$1,
                         style: TextStyle(
-                          color:
-                              option.$2
-                                  ? null
-                                  : Theme.of(context).disabledColor,
+                          color: option.$2
+                              ? null
+                              : Theme.of(context).disabledColor,
                         ),
                       ),
                       onTap: option.$2
@@ -344,7 +341,10 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
     var selected = targets;
     if (!store.downloadPreferences.includeVip) {
       final skipped = targets.where((episode) => episode.vip).length;
-      selected = [for (final episode in targets) if (!episode.vip) episode];
+      selected = [
+        for (final episode in targets)
+          if (!episode.vip) episode,
+      ];
       if (selected.isEmpty) {
         showMessage(context, '所选集均为 VIP 集，可在下载设置开启“默认包含 VIP 集”');
         return;
@@ -661,11 +661,17 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
                 body: Stack(
                   fit: StackFit.expand,
                   children: [
-                    PlayerVideo(
-                      key: ValueKey(_session.player),
-                      handle: widget.handle,
-                      player: _session.player,
-                      fit: _session.videoFit,
+                    AnimatedOpacity(
+                      opacity: _session.switching ? 0 : 1,
+                      duration: _session.switching
+                          ? Motion.short
+                          : Motion.medium,
+                      child: PlayerVideo(
+                        key: ValueKey(_session.player),
+                        handle: widget.handle,
+                        player: _session.player,
+                        fit: _session.videoFit,
+                      ),
                     ),
                     DanmakuOverlay(
                       controller: _session.danmaku,
