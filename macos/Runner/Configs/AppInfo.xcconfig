@@ -11,4 +11,4 @@ PRODUCT_NAME = videoapp
 PRODUCT_BUNDLE_IDENTIFIER = com.videoapp.app
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.guoapp. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.videoapp. All rights reserved.
