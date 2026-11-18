@@ -71,7 +71,7 @@ Flutter 界面 + Go 原生核心。站源请求、解析、签名、缓存、下
 | `native/core`、`native/bridge` | Go 运行时（缓存、下载、播放代理）及 C ABI |
 | `native/module_example` | 示例站源模块（假数据，不访问网络） |
 | `android`、`windows`、`ios`、`macos` | 平台工程与资源 |
-| `packages/media_kit_libs_windows_video` | 本地覆盖的 Windows 媒体依赖插件 |
+| `packages/` | `dependency_overrides` 本地覆盖包（改动清单见 `packages/PATCHES.md`） |
 | `scripts` | 构建、图标生成与数据清理脚本 |
 | `test` | 逻辑层测试 |
 
