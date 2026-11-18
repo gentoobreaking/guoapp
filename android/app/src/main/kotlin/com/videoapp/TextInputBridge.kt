@@ -1,4 +1,4 @@
-package com.guoapp
+package com.videoapp
 
 import android.app.Activity
 import android.content.Context
