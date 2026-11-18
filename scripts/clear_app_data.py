@@ -7,7 +7,7 @@ from pathlib import Path
 
 from app_build import app
 
-EXECUTABLES = ("guoapp.exe",)
+EXECUTABLES = ("videoapp.exe",)
 
 
 def running(executable: str) -> bool:

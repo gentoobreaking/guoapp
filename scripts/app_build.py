@@ -10,7 +10,7 @@ ENVIRONMENT_DEFINES = ['PROJECT_URL', 'TELEGRAM_GROUP_URL', 'TELEGRAM_CHANNEL_UR
 
 
 class AppBuild:
-    slug = 'guoapp'
+    slug = 'videoapp'
     display_name = '影片庫'
 
     @property
