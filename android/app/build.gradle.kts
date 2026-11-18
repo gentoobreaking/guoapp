@@ -22,7 +22,7 @@ if (releaseKey.exists()) {
 val hasReleaseKey = releaseProperties.getProperty("storeFile") != null
 
 android {
-    namespace = "com.guoapp"
+    namespace = "com.videoapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
