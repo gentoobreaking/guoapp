@@ -263,7 +263,7 @@ jobs:
           retention-days: 14
 
   release:
-    needs: [checks, prepare, android, windows, ios, macos]
+    needs: [checks, prepare, android, windows, ios]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
