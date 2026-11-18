@@ -2,7 +2,7 @@
 
 <img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫圖示">
 
-# 影片庫 (GuoApp)
+# 影片庫 (VideoApp)
 
 Flutter 多端獨立短劇影視應用，手機、平板、電腦和電視分別適配。
 

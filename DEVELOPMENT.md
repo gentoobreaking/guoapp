@@ -137,7 +137,7 @@ Flutter 界面 + Go 原生核心。站源请求、解析、签名、缓存、下
 
 Android 签名只用仓库 Secrets：`SIGNING_KEYSTORE_BASE64`、`SIGNING_KEYSTORE_PASSWORD`、`SIGNING_KEY_ALIAS`、`SIGNING_KEY_PASSWORD`，另需仓库变量 `SIGNING_CERT_SHA256`（证书 SHA-256，冒号和大小写不限），缺任意一项都会失败。CI 通过环境变量把签名传给 Gradle；本机读 `android/key.properties`（不入库）。
 
-包名取环境变量 `PACKAGE_NAME`（CI 取同名仓库变量），没设或为空时用 `com.guoapp.app`，由 Android `build.gradle.kts`、Windows `app_branding.cmake`、iOS / macOS `scripts/app_build.py` 读取。应用名固定为「小果影视」，英文名 `GuoApp`；安装包前缀、Windows 可执行文件和使用统计的构建标识为 `guoapp`。
+包名取环境变量 `PACKAGE_NAME`（CI 取同名仓库变量），没设或为空时用 `com.guoapp.app`，由 Android `build.gradle.kts`、Windows `app_branding.cmake`、iOS / macOS `scripts/app_build.py` 读取。应用名固定为「影片庫」，英文名 `VideoApp`；安装包前缀、Windows 可执行文件和使用统计的构建标识为 `guoapp`。
 
 Windows 数据目录为 `%APPDATA%\<包名>`：`Runner.rc` 不设 CompanyName，ProductName 为包名，`path_provider` 据此拼出应用支持目录。删除不影响使用的缓存（`covers-v1/`、`catalogs.json`、`rankings.json`）放在 `getApplicationCacheDirectory()` 给出的目录，Windows 为 `%LOCALAPPDATA%\<包名>`，便携版为 `userdata\cache`；初始化时由 `moveLegacyNativeCache` 把数据目录里的旧缓存搬过去，新增缓存文件要写进 `cacheDirectory` 并加到这份清单。站源的 `CatalogState`（红果设备、辅助设备和列表游标）不算缓存，存在数据目录的 `provider-states.json`，旧版写在 `catalogs.json` 里的会在首次启动时迁出。旧版数据在 `%APPDATA%\真果鉴\真果鉴`，`lib/windows_data_migration.dart` 在启动最早阶段检查：新目录为空且旧目录存在时整个改名移入；新目录已有内容或移动失败都不处理，失败写入日志。Android TV 横幅 `tv_banner.png` 只有图标不带文字，改名不用重新生成。
 
@@ -156,4 +156,4 @@ npx wrangler d1 execute guoapp-stats --remote --command "SELECT COUNT(DISTINCT i
 npx wrangler d1 execute guoapp-stats --remote --command "SELECT platform, build, version, COUNT(*) FROM pings WHERE day = date('now', '+8 hours') GROUP BY 1, 2, 3 ORDER BY 4 DESC"  # 今日分布
 ~~~
 
-应用显示名：Android 在 `android/app/build.gradle.kts`，Windows 在 `windows/runner/app_branding.cmake`，iOS 由 Xcode「Thin Binary」构建阶段写入，macOS 由 `scripts/package_release.py` 打包时改 `CFBundleDisplayName` / `CFBundleName` / `CFBundleIdentifier` 后重新签名。iOS 的 `CFBundleDisplayName` 用英文名 `GuoApp` 以通过侧载工具的名称校验，中文名写在 `zh-Hans.lproj/InfoPlist.strings`。macOS 关闭了 App Sandbox，以便本地播放代理和自选下载目录正常工作；系统代理由 `MainFlutterWindow.swift` 的 `duanju/device` 通道读取。
+应用显示名：Android 在 `android/app/build.gradle.kts`，Windows 在 `windows/runner/app_branding.cmake`，iOS 由 Xcode「Thin Binary」构建阶段写入，macOS 由 `scripts/package_release.py` 打包时改 `CFBundleDisplayName` / `CFBundleName` / `CFBundleIdentifier` 后重新签名。iOS 的 `CFBundleDisplayName` 用英文名 `VideoApp` 以通过侧载工具的名称校验，中文名写在 `zh-Hans.lproj/InfoPlist.strings`。macOS 关闭了 App Sandbox，以便本地播放代理和自选下载目录正常工作；系统代理由 `MainFlutterWindow.swift` 的 `duanju/device` 通道读取。

@@ -2,7 +2,7 @@
 
 <img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫 icon">
 
-# 影片庫 (GuoApp)
+# 影片庫 (VideoApp)
 
 A Flutter short-drama streaming app, with dedicated layouts for phones, tablets, desktops and TVs.
 

@@ -2,7 +2,7 @@
 
 <img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫圖標">
 
-# 影片庫 (GuoApp)
+# 影片庫 (VideoApp)
 
 Flutter 多端独立影视应用，手机、平板、电脑和电视分别适配
 
