@@ -56,6 +56,12 @@ Map<String, Object?> _map(Object? value) =>
 Iterable<Map<String, dynamic>> _rows(Object? value) =>
     _list(value).whereType<Map>().map(Map<String, dynamic>.from);
 
+/// LocalStore 的细分通知器：页面按需订阅关注点，避免任一变更触发全页重建。
+/// LocalStore 自身仍是全量通知器，未迁移的监听者行为不变。
+class StoreSection extends ChangeNotifier {
+  void _fire() => notifyListeners();
+}
+
 class LocalStore extends ChangeNotifier {
   LocalStore._(this.preferences, this.files, this._pinHasher);
 
@@ -90,6 +96,19 @@ class LocalStore extends ChangeNotifier {
   int _epoch = 0;
   int _failures = 0;
   DateTime _retryAfter = DateTime(2000);
+
+  /// 细分通知器：迁移后的页面只订阅自己关心的变更（见各 _notify* 调用点）。
+  /// 设置与外观 flag 的变更；搜索记录、画质筛选、播放偏好等都走这里。
+  final StoreSection settingsUpdates = StoreSection();
+  /// 权限与站源可用性（用户切换、锁定、站源开关、profile 变更、epoch 变更）。
+  final StoreSection permissionUpdates = StoreSection();
+  /// 追剧收藏与追剧状态。
+  final StoreSection favoriteUpdates = StoreSection();
+  /// 观看历史。
+  final StoreSection historyUpdates = StoreSection();
+  /// 已学习的剧集画质与画质筛选（rememberDramaQuality 已合并为 400ms 一发）。
+  final StoreSection qualityUpdates = StoreSection();
+  Timer? _qualityTimer;
 
   Future<void> _initialize() async {
     try {
@@ -311,7 +330,32 @@ class LocalStore extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  void sourcesChanged() => _notify();
+  /// 全量通知之外再点名关注点；已迁移到细分通知器的页面只收点名，
+  /// 未迁移的监听者（仍订阅 LocalStore 本身）行为与原来一致。
+  void _notifySections([StoreSection? a, StoreSection? b, StoreSection? c]) {
+    _notify();
+    if (_disposed) return;
+    for (final section in [a, b, c].whereType<StoreSection>()) {
+      section._fire();
+    }
+  }
+
+  /// 用户/epoch 级变更影响所有关注点。
+  void _notifyAllSections() {
+    _notify();
+    if (_disposed) return;
+    for (final section in [
+      settingsUpdates,
+      permissionUpdates,
+      favoriteUpdates,
+      historyUpdates,
+      qualityUpdates,
+    ]) {
+      section._fire();
+    }
+  }
+
+  void sourcesChanged() => _notifySections(permissionUpdates);
 
   ({Map<String, int> follows, Map<String, int> history})
   missingSourceRecords() {
@@ -414,14 +458,19 @@ class LocalStore extends ChangeNotifier {
     final key = '$source\u0000$id';
     if ((_dramaQualities[key] ?? 0) >= quality) return;
     _dramaQualities[key] = quality;
-    unawaited(_saveDramaQualities());
+    // 连续学习画质（连开详情页、连播）时合并写档与细分重建：400ms 一发，
+    // 快照与用户一并捕获，即使中途切用户也能把旧用户的数据写回旧用户的文件。
+    final userId = _current;
+    final snapshot = Map.of(_dramaQualities);
+    _qualityTimer?.cancel();
+    _qualityTimer = Timer(const Duration(milliseconds: 400), () {
+      unawaited(
+        _queue(() => _write(_userFile(userId, 'dramaQualities'), snapshot)),
+      );
+      if (!_disposed) qualityUpdates._fire();
+    });
     _notify();
   }
-
-  Future<void> _saveDramaQualities() =>
-      _write(_userFile(_current, 'dramaQualities'), {
-        for (final entry in _dramaQualities.entries) entry.key: entry.value,
-      });
 
   /// 列表画质筛选：0 = 全部，720 = 只看已知 720P+，1080 = 只看已知 1080P。
   int get qualityFilter {
@@ -566,7 +615,7 @@ class LocalStore extends ChangeNotifier {
   Future<void> _saveSettings(Map<String, Object?> settings) async {
     await _write(_settingsFile, settings);
     _settings = settings;
-    _notify();
+    _notifySections(settingsUpdates, permissionUpdates);
   }
 
   Future<void> _setting(String key, Object value) =>
@@ -579,7 +628,11 @@ class LocalStore extends ChangeNotifier {
       final settings = {..._userSettings, key: value};
       await _write(_userFile(_current, 'settings'), settings);
       _userSettings = settings;
-      _notify();
+      _notifySections(switch (key) {
+        'source' => permissionUpdates,
+        'qualityFilter' => qualityUpdates,
+        _ => settingsUpdates,
+      });
     });
   }
 
@@ -598,7 +651,7 @@ class LocalStore extends ChangeNotifier {
       final settings = {..._userSettings, 'recentSearches': entries};
       await _write(_userFile(_current, 'settings'), settings);
       _userSettings = settings;
-      _notify();
+      _notifySections(settingsUpdates);
     });
   }
 
@@ -614,7 +667,7 @@ class LocalStore extends ChangeNotifier {
     _requireAdmin();
     await _saveUsers(_profiles, _current, value);
     _forceLogin = value;
-    _notify();
+    _notifySections(permissionUpdates);
   });
 
   Future<void> setSource(String value) {
@@ -634,11 +687,11 @@ class LocalStore extends ChangeNotifier {
       _setting('themeColor', value.name);
   Future<void> setSideBarExpanded(bool value) => _queue(() async {
     await preferences.setBool('sideBarExpanded', value);
-    _notify();
+    _notifySections(settingsUpdates);
   });
   Future<void> setPlayerWide(bool value) => _queue(() async {
     await preferences.setBool('playerWide', value);
-    _notify();
+    _notifySections(settingsUpdates);
   });
   Future<void> setPlayerVolume(double value) =>
       _queue(() => preferences.setDouble('playerVolume', value));
@@ -727,7 +780,7 @@ class LocalStore extends ChangeNotifier {
       }
       await _saveStates(states);
       await _saveFavorites(entries);
-      _notify();
+      _notifySections(favoriteUpdates);
     });
   }
 
@@ -747,7 +800,7 @@ class LocalStore extends ChangeNotifier {
       await _saveFavorites(
         Map.of(_favorites)..removeWhere((id, _) => removed.contains(id)),
       );
-      _notify();
+      _notifySections(favoriteUpdates);
     });
   }
 
@@ -758,7 +811,7 @@ class LocalStore extends ChangeNotifier {
       await _saveStates(
         Map.of(_followStates)..[id] = _followStates[id]!.markRead(),
       );
-      _notify();
+      _notifySections(favoriteUpdates);
     });
   }
 
@@ -770,7 +823,7 @@ class LocalStore extends ChangeNotifier {
       final updated = current.markSeriesSeasonRead(seasonId);
       if (identical(current, updated)) return;
       await _saveStates(Map.of(_followStates)..[id] = updated);
-      _notify();
+      _notifySections(favoriteUpdates);
     });
   }
 
@@ -815,7 +868,7 @@ class LocalStore extends ChangeNotifier {
           changed = true;
         }
       }
-      if (changed) _notify();
+      if (changed) _notifySections(favoriteUpdates, historyUpdates);
     });
   }
 
@@ -824,7 +877,7 @@ class LocalStore extends ChangeNotifier {
     return _queue(() async {
       if (locked || epoch != _epoch) return;
       await _saveHistory(const []);
-      _notify();
+      _notifySections(historyUpdates);
     });
   }
 
@@ -842,7 +895,7 @@ class LocalStore extends ChangeNotifier {
       await _saveHistory(
         _history.values.where((entry) => !removed.contains(entry.drama.id)),
       );
-      _notify();
+      _notifySections(historyUpdates);
     });
   }
 
@@ -917,7 +970,7 @@ class LocalStore extends ChangeNotifier {
       if (statesChanged) await _saveStates(states);
       if (favoritesChanged) await _saveFavorites(favorites);
       if (historyChanged) await _saveHistory(history.values);
-      _notify();
+      _notifySections(favoriteUpdates, historyUpdates);
     });
   }
 
@@ -965,13 +1018,13 @@ class LocalStore extends ChangeNotifier {
       _block(_unreadable);
     }
     _epoch++;
-    _notify();
+    _notifyAllSections();
   });
   void lock() {
     if (!profile.protected) return;
     _locked = true;
     _epoch++;
-    _notify();
+    _notifyAllSections();
   }
 
   Future<void> saveProfile({
@@ -1038,7 +1091,7 @@ class LocalStore extends ChangeNotifier {
         );
     await _saveUsers(profiles, _current, _forceLogin);
     _profiles = profiles;
-    _notify();
+    _notifySections(permissionUpdates);
   });
   Future<void> deleteProfile(String id) => _queue(() async {
     _requireAdmin();
@@ -1047,7 +1100,7 @@ class LocalStore extends ChangeNotifier {
     await _saveUsers(profiles, _current, _forceLogin);
     _profiles = profiles;
     await files.remove('users/$id').catchError((Object _) {});
-    _notify();
+    _notifySections(permissionUpdates);
   });
 
   Future<String> exportBackup() async {
@@ -1226,7 +1279,7 @@ class LocalStore extends ChangeNotifier {
     await _removeLegacy();
     await _initialize();
     _epoch++;
-    _notify();
+    _notifyAllSections();
   }
 
   Future<void> importBackup(String content) => _queue(() async {
@@ -1307,7 +1360,7 @@ class LocalStore extends ChangeNotifier {
     } else {
       _epoch++;
     }
-    _notify();
+    _notifyAllSections();
   });
 
   Future<void> _queue(Future<void> Function() action) {
@@ -1320,6 +1373,15 @@ class LocalStore extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    for (final section in [
+      settingsUpdates,
+      permissionUpdates,
+      favoriteUpdates,
+      historyUpdates,
+      qualityUpdates,
+    ]) {
+      section.dispose();
+    }
     super.dispose();
   }
 }

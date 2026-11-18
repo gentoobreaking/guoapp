@@ -132,7 +132,13 @@ class _FollowPageState extends State<FollowPage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([widget.store, _query]),
+    listenable: Listenable.merge([
+      widget.store.permissionUpdates,
+      widget.store.settingsUpdates,
+      widget.store.favoriteUpdates,
+      widget.store.historyUpdates,
+      _query,
+    ]),
     builder: (context, _) {
       final follows = widget.store.favorites;
       final sources = followedSources(follows);

@@ -68,7 +68,10 @@ class FollowPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: store,
+    listenable: Listenable.merge([
+      store.favoriteUpdates,
+      store.permissionUpdates,
+    ]),
     builder: (context, _) {
       final followed = store.isFavorite(drama.id);
       final corner = radius ?? height / 2;
@@ -140,7 +143,10 @@ class FollowIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: store,
+    listenable: Listenable.merge([
+      store.favoriteUpdates,
+      store.permissionUpdates,
+    ]),
     builder: (context, _) {
       final followed = store.isFavorite(drama.id);
       return Semantics(

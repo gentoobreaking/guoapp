@@ -261,7 +261,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _recent(BuildContext context) => ListenableBuilder(
-    listenable: widget.store,
+    listenable: widget.store.settingsUpdates,
     builder: (context, _) {
       final recent = widget.store.recentSearches;
       return FadeSwitcher(child: _recentContent(context, recent));

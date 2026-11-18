@@ -129,7 +129,13 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([widget.store, _query]),
+    listenable: Listenable.merge([
+      widget.store.permissionUpdates,
+      widget.store.settingsUpdates,
+      widget.store.favoriteUpdates,
+      widget.store.historyUpdates,
+      _query,
+    ]),
     builder: (context, _) {
       final history = widget.store.history;
       final sources = watchedSources(history);

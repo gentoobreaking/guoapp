@@ -125,7 +125,12 @@ class ExplorePageState extends State<ExplorePage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([_explore!, widget.store]),
+    listenable: Listenable.merge([
+      _explore!,
+      widget.store.permissionUpdates,
+      widget.store.settingsUpdates,
+      widget.store.qualityUpdates,
+    ]),
     builder: (context, _) {
       final explore = _explore!;
       final source = explore.source;
