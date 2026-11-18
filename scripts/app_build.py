@@ -15,7 +15,7 @@ class AppBuild:
 
     @property
     def bundle_identifier(self):
-        return os.environ.get('PACKAGE_NAME', '').strip() or 'com.guoapp.app'
+        return os.environ.get('PACKAGE_NAME', '').strip() or 'com.videoapp.app'
 
     @property
     def flutter_arguments(self):
