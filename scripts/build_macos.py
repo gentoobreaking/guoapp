@@ -86,7 +86,7 @@ def main():
     if not pod:
         raise SystemExit('请先安装 CocoaPods（brew install cocoapods）。')
     run([sys.executable, root / 'scripts' / 'build_native.py', '--platform', 'darwin'], env)
-    run([flutter, 'pub', 'get', '--enforce-lockfile'], env)
+    run([flutter, 'pub', 'get'], env)
     run([pod, 'install'], env, cwd=root / 'macos')
     repair_media_kit(env)
     run([flutter, 'build', 'macos', '--release', '--no-pub',
