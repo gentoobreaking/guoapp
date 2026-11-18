@@ -129,7 +129,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          TAG: ${{ needs.prepare.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}-android
+          SIGNING_CERT_SHA256: ${{ vars.SIGNING_CERT_SHA256 }}
           SIGNING_CERT_SHA256: ${{ vars.SIGNING_CERT_SHA256 }}
         run: |
           set -euo pipefail
@@ -164,7 +165,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          TAG: ${{ needs.prepare.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}-android
         run: |
           set -euo pipefail
           changes="$(cat changes.md)"

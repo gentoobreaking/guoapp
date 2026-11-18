@@ -89,7 +89,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          TAG: ${{ needs.prepare.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}-windows
         run: |
           set -euo pipefail
           cat > notes.md <<EOF
@@ -120,7 +120,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          TAG: ${{ needs.prepare.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}-windows
         run: |
           set -euo pipefail
           changes="$(cat changes.md)"

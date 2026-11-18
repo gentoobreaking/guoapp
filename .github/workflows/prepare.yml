@@ -7,7 +7,7 @@ on:
         description: "Version from pubspec.yaml"
         value: ${{ jobs.prepare.outputs.version }}
       tag:
-        description: "Git tag for release"
+        description: "Git tag for release (base, without platform suffix)"
         value: ${{ jobs.prepare.outputs.tag }}
 
 permissions:
