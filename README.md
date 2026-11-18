@@ -78,7 +78,7 @@ Common to all devices: the next episode is pre-buffered so page turns and contin
 
 ### Settings, users & backup
 
-- **Settings**: 8 groups — appearance, playback, download, sources, proxy, users, about, diagnostics — saved immediately; items you lack permission for are greyed out with a reason.
+- **Settings**: 9 groups — appearance, playback, danmaku, download, storage, proxy, users, about, diagnostics — saved immediately; items you lack permission for are greyed out with a reason.
 - **Users**: separate following, history and searches per user, switch with a tap; admins add, edit and delete users and control which sources each can access and whether downloads are allowed.
 - **Backup**: export / restore users, following, history and preferences (including theme color); downloaded videos are unaffected; older backups still import. If local configuration is damaged, the startup screen can restore from a backup.
 
