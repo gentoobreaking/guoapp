@@ -64,34 +64,3 @@ func (engine *nativeEngine) clearCache() error {
 	}
 	return nil
 }
-
-func (engine *nativeEngine) deleteAllData() ([]string, error) {
-	manager := engine.downloads
-	engine.mu.Lock()
-	defer engine.mu.Unlock()
-	manager.mu.Lock()
-	if manager.moving {
-		manager.mu.Unlock()
-		return nil, errors.New("下载目录正在处理，请稍后重试")
-	}
-	if len(manager.converting) > 0 {
-		manager.mu.Unlock()
-		return nil, errors.New("请等待下载的分集处理完成后再删除")
-	}
-	manager.moving = true
-	for _, cancel := range manager.active {
-		cancel()
-	}
-	root := manager.root
-	manager.mu.Unlock()
-	manager.workers.Wait()
-	var leftover []string
-	if filepath.IsAbs(root) && filepath.Dir(root) != root {
-		if err := os.RemoveAll(root); err != nil {
-			leftover = append(leftover, root+"："+err.Error())
-		}
-	}
-	leftover = append(leftover, nativeClearDirectory(engine.cacheDirectory)...)
-	leftover = append(leftover, nativeClearDirectory(engine.directory)...)
-	return leftover, nil
-}

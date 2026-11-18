@@ -523,13 +523,16 @@ class NativeRepository extends AppRepository {
     await BackgroundDownloads.ensureStarted();
     await workLease('storage', 'start');
     try {
-      final result = await _call({
+      await _call({
         'action': 'moveDownloads',
         'directory': directory,
       });
+      final status = await _waitForDataJob();
+      final failed = status['failed'] as String? ?? '';
+      if (failed.isNotEmpty) throw AppFailure(failed);
       return (
-        path: result['leftover'] as String? ?? '',
-        reason: result['leftoverReason'] as String? ?? '',
+        path: status['leftoverPath'] as String? ?? '',
+        reason: status['leftoverReason'] as String? ?? '',
       );
     } finally {
       await workLease('storage', 'end');
@@ -562,13 +565,26 @@ class NativeRepository extends AppRepository {
     }
     await workLease('storage', 'start');
     try {
-      final result = await _call({'action': 'deleteAllData'});
+      await _call({'action': 'deleteAllData'});
+      final status = await _waitForDataJob();
+      final failed = status['failed'] as String? ?? '';
+      if (failed.isNotEmpty) throw AppFailure(failed);
       return [
-        for (final item in result['leftover'] as List? ?? const []) '$item',
+        for (final item in status['leftover'] as List? ?? const []) '$item',
       ];
     } catch (_) {
       await workLease('storage', 'end');
       rethrow;
+    }
+  }
+
+  /// 轮询后台资料作业（moveDownloads / deleteAllData）直到结束。
+  /// 同步阶段只做校验即返回，繁重 I/O 在 Go 背景完成，期间不再阻塞其他原生呼叫。
+  Future<Map<String, dynamic>> _waitForDataJob() async {
+    while (true) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final status = await _call({'action': 'dataJobStatus'});
+      if (status['running'] != true) return status;
     }
   }
 
@@ -659,6 +675,7 @@ class NativeRepository extends AppRepository {
             'cancelPlayback',
             'cancelRead',
             'updateSystemProxy',
+            'dataJobStatus',
           }.contains(action) ||
           action == 'workLease' && input['command'] == 'end' ||
           action == 'finishConversion' ||

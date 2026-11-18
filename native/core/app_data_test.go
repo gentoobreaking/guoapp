@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func testDataEngine(t *testing.T, directory, cache, root string) *nativeEngine {
@@ -74,9 +75,18 @@ func TestDeleteAllDataRemovesEverything(t *testing.T) {
 	writeDataFile(t, filepath.Join(engine.cacheDirectory, "rankings.json"))
 	writeDataFile(t, filepath.Join(external, "index.json"))
 
-	leftover, err := engine.deleteAllData()
-	if err != nil || len(leftover) != 0 {
-		t.Fatalf("leftover = %v, err = %v", leftover, err)
+	if err := engine.startDeleteAllData(); err != nil {
+		t.Fatal(err)
+	}
+	if err := engine.startDeleteAllData(); err == nil {
+		t.Fatal("作业进行中时应拒绝重复启动")
+	}
+	status := waitForDataJob(t, engine)
+	if failed, _ := status["failed"].(string); failed != "" {
+		t.Fatalf("不应失败：%s", failed)
+	}
+	if leftover, _ := status["leftover"].([]string); len(leftover) != 0 {
+		t.Fatalf("leftover = %v", leftover)
 	}
 	if _, err := os.Stat(external); !os.IsNotExist(err) {
 		t.Fatalf("下载目录应删除: %v", err)
@@ -88,6 +98,59 @@ func TestDeleteAllDataRemovesEverything(t *testing.T) {
 	}
 	if !engine.downloads.moving {
 		t.Fatal("删除后应阻止新的下载任务")
+	}
+}
+
+// waitForDataJob 轮询后台资料作业直到结束。
+func waitForDataJob(t *testing.T, engine *nativeEngine) map[string]any {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		status := engine.dataJobStatus()
+		running, _ := status["running"].(bool)
+		if !running {
+			return status
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("资料作业超时未完成")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestMoveDownloadsTransfersFiles(t *testing.T) {
+	base := t.TempDir()
+	source := filepath.Join(base, "data", "downloads")
+	targetParent := filepath.Join(base, "elsewhere")
+	engine := testDataEngine(t, filepath.Join(base, "data"), filepath.Join(base, "data", "cache"), source)
+	if err := os.MkdirAll(targetParent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	writeDataFile(t, filepath.Join(source, "job-1", "video.mp4"))
+
+	if err := engine.startMoveDownloads(targetParent); err != nil {
+		t.Fatal(err)
+	}
+	status := waitForDataJob(t, engine)
+	if failed, _ := status["failed"].(string); failed != "" {
+		t.Fatalf("迁移失败：%s", failed)
+	}
+	if path, _ := status["leftoverPath"].(string); path != "" {
+		t.Fatalf("不应有残留：%s", path)
+	}
+	target := filepath.Join(targetParent, "zhenguojian-downloads")
+	resolved, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(target, "job-1", "video.mp4")); err != nil {
+		t.Fatalf("文件应迁移到新目录：%v", err)
+	}
+	if _, err := os.Stat(source); !os.IsNotExist(err) {
+		t.Fatalf("原目录应删除：%v", err)
+	}
+	if engine.downloads.root != resolved {
+		t.Fatalf("下载根目录应切换到 %s，实际 %s", resolved, engine.downloads.root)
 	}
 }
 

@@ -154,6 +154,7 @@ type nativeEngine struct {
 	playbackCancel      context.CancelFunc
 	sourceCatalogMu     sync.Mutex
 	sourceCatalogs      map[string]chan struct{}
+	dataJob             nativeDataJob
 }
 
 var nativeState struct {
@@ -419,11 +420,17 @@ func nativeDispatch(input nativeInput) (any, error) {
 	case "clearCache":
 		return true, engine.clearCache()
 	case "deleteAllData":
-		leftover, err := engine.deleteAllData()
-		return map[string]any{"leftover": leftover}, err
+		if err := engine.startDeleteAllData(); err != nil {
+			return nil, err
+		}
+		return map[string]any{"started": true}, nil
 	case "moveDownloads":
-		leftover, reason, err := engine.moveDownloads(ctx, input.Directory)
-		return map[string]string{"leftover": leftover, "leftoverReason": reason}, err
+		if err := engine.startMoveDownloads(input.Directory); err != nil {
+			return nil, err
+		}
+		return map[string]any{"started": true}, nil
+	case "dataJobStatus":
+		return engine.dataJobStatus(), nil
 	case "workLease":
 		count, err := engine.workLease(input.JobID, input.Command)
 		return map[string]int{"count": count}, err
