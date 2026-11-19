@@ -29,6 +29,8 @@ func (host *moduleTestHost) SaveState(name string, data []byte) error {
 	return nil
 }
 
+func (host *moduleTestHost) AllowlistStrict() bool { return true }
+
 func writeTestModule(t *testing.T, manifest, code string) string {
 	t.Helper()
 	directory := t.TempDir()

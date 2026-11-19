@@ -31,13 +31,14 @@ var moduleInvoker = goja.MustCompile("module-invoker", `(function(exports) {
 })`, true)
 
 type jsProvider struct {
-	module    *jsModule
-	host      Host
-	exclusive chan struct{}
-	slots     chan struct{}
-	idle      chan *jsInstance
-	cacheMu   sync.Mutex
-	cache     map[string]moduleCacheEntry
+	module           *jsModule
+	host             Host
+	allowlistStrict  bool
+	exclusive        chan struct{}
+	slots            chan struct{}
+	idle             chan *jsInstance
+	cacheMu          sync.Mutex
+	cache            map[string]moduleCacheEntry
 }
 
 type jsInstance struct {
@@ -173,7 +174,8 @@ func moduleMedia(media ProviderMedia) jsMedia {
 }
 
 func (module *jsModule) provider(host Host) Provider {
-	p := &jsProvider{module: module, host: host, exclusive: make(chan struct{}, 1), cache: map[string]moduleCacheEntry{},
+	p := &jsProvider{module: module, host: host, allowlistStrict: host.AllowlistStrict(),
+		exclusive: make(chan struct{}, 1), cache: map[string]moduleCacheEntry{},
 		slots: make(chan struct{}, moduleInstanceLimit), idle: make(chan *jsInstance, moduleInstanceLimit)}
 	module.active.Store(p)
 	return p
@@ -470,7 +472,7 @@ func (p *jsProvider) allowedAddress(raw string) error {
 	if err != nil || address.Scheme != "https" && address.Scheme != "http" || address.Hostname() == "" {
 		return errors.New("请求地址无效")
 	}
-	if !p.module.allowsHost(address.Hostname()) {
+	if p.allowlistStrict && !p.module.allowsHost(address.Hostname()) {
 		return fmt.Errorf("模块清单未声明访问 %s", address.Hostname())
 	}
 	return nil

@@ -75,6 +75,7 @@ type Host interface {
 	SaveState(name string, data []byte) error
 	PrepareWebMedia(ctx context.Context, media ProviderMedia, sourceName string) (ProviderMedia, error)
 	FinishMedia(ctx context.Context, media ProviderMedia, source string) (ProviderMedia, error)
+	AllowlistStrict() bool
 }
 
 func (d *Downloader) FetchText(ctx context.Context, request TextRequest) (TextResponse, error) {
@@ -340,3 +341,5 @@ func (d *Downloader) RememberSite(source, site string) {
 }
 
 func (d *Downloader) BaseURL(source string) string { return d.providerBaseURL(source) }
+
+func (d *Downloader) AllowlistStrict() bool { return d.ModuleAllowlistStrict }
