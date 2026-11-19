@@ -20,6 +20,8 @@ const (
 	moduleFetchTimeout = 20 * time.Second
 )
 
+var nativeModuleIndex = ""
+
 var (
 	moduleIndexAddresses = []string{
 		"https://raw.githubusercontent.com/guoapp-modules/index/main/index.json",
@@ -29,9 +31,10 @@ var (
 		"https://raw.githubusercontent.com/%s/%s/%s",
 		"https://cdn.jsdelivr.net/gh/%s@%s/%s",
 	}
-	moduleIndexRepo = regexp.MustCompile(`^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$`)
-	moduleIndexTag  = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
-	moduleIndexHash = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	moduleIndexRepo    = regexp.MustCompile(`^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$`)
+	moduleIndexTag     = regexp.MustCompile(`^(?:[a-z0-9][a-z0-9_-]{0,31}-)?v\d+\.\d+\.\d+$`)
+	moduleIndexVersion = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+	moduleIndexHash    = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
 type moduleIndexEntry struct {
@@ -49,8 +52,23 @@ type moduleIndexEntry struct {
 
 func (entry moduleIndexEntry) usable() bool {
 	return entry.API == moduleAPIVersion && moduleIDPattern.MatchString(entry.ID) && strings.TrimSpace(entry.Name) != "" &&
-		moduleIndexRepo.MatchString(entry.Repo) && moduleIndexTag.MatchString(entry.Tag) &&
+		moduleIndexRepo.MatchString(entry.Repo) && moduleIndexVersion.MatchString(entry.Version) &&
+		moduleIndexTag.MatchString(entry.Tag) && (entry.Tag == "v"+entry.Version || entry.Tag == entry.ID+"-v"+entry.Version) &&
 		moduleIndexHash.MatchString(entry.SHA256[moduleManifest]) && moduleIndexHash.MatchString(entry.SHA256[moduleEntry])
+}
+
+// indexAddresses 返回模块索引用地址；构建期可通过 nativeModuleIndex 注入自持索引，未注入时用官方默认。
+func indexAddresses() []string {
+	if strings.TrimSpace(nativeModuleIndex) != "" {
+		addresses := []string{}
+		for _, address := range strings.Split(nativeModuleIndex, ",") {
+			if address = strings.TrimRight(strings.TrimSpace(address), "/"); address != "" {
+				addresses = append(addresses, address)
+			}
+		}
+		return addresses
+	}
+	return moduleIndexAddresses
 }
 
 func parseModuleIndex(raw []byte) ([]moduleIndexEntry, error) {
@@ -75,7 +93,7 @@ func parseModuleIndex(raw []byte) ([]moduleIndexEntry, error) {
 
 func (engine *nativeEngine) moduleIndex(ctx context.Context) ([]moduleIndexEntry, int, error) {
 	var failures []string
-	for mirror, address := range moduleIndexAddresses {
+	for mirror, address := range indexAddresses() {
 		raw, err := engine.fetchModuleResource(ctx, address, moduleIndexBytes)
 		if err == nil {
 			var entries []moduleIndexEntry
@@ -133,17 +151,20 @@ func (engine *nativeEngine) indexedModulePackage(ctx context.Context, id string,
 
 func (engine *nativeEngine) fetchIndexedFile(ctx context.Context, entry moduleIndexEntry, mirror int, name string, limit int) ([]byte, error) {
 	var failures []string
-	for offset := range moduleFileAddresses {
-		pattern := moduleFileAddresses[(mirror+offset)%len(moduleFileAddresses)]
-		data, err := engine.fetchModuleResource(ctx, fmt.Sprintf(pattern, entry.Repo, entry.Tag, name), limit)
-		if err == nil {
-			sum := sha256.Sum256(data)
-			if hex.EncodeToString(sum[:]) == entry.SHA256[name] {
-				return data, nil
+	paths := []string{name, entry.ID + "/" + name}
+	for _, path := range paths {
+		for offset := range moduleFileAddresses {
+			pattern := moduleFileAddresses[(mirror+offset)%len(moduleFileAddresses)]
+			data, err := engine.fetchModuleResource(ctx, fmt.Sprintf(pattern, entry.Repo, entry.Tag, path), limit)
+			if err == nil {
+				sum := sha256.Sum256(data)
+				if hex.EncodeToString(sum[:]) == entry.SHA256[name] {
+					return data, nil
+				}
+				err = errors.New("文件校验不符")
 			}
-			err = errors.New("文件校验不符")
+			failures = append(failures, err.Error())
 		}
-		failures = append(failures, err.Error())
 	}
 	return nil, fmt.Errorf("下载 %s 的 %s 失败：%s", entry.Name, name, strings.Join(failures, "；"))
 }

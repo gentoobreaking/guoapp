@@ -39,6 +39,9 @@ class AppBuild:
         project = os.environ.get('PROJECT_URL', '').strip()
         if project:
             flags += ' -X duanjuapp/native/core.nativeProjectURL=' + project
+        index_urls = os.environ.get('MODULE_INDEX_URLS', '').strip()
+        if index_urls:
+            flags += ' -X duanjuapp/native/core.nativeModuleIndex=' + index_urls
         return flags
 
 

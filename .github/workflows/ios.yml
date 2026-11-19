@@ -12,6 +12,7 @@ env:
   UPDATE_SERVER_URL: ${{ vars.UPDATE_SERVER_URL }}
   PACKAGE_NAME: ${{ vars.PACKAGE_NAME }}
   BUNDLED_MODULES: bundled-modules/hongguo
+  MODULE_INDEX_URLS: ${{ vars.MODULE_INDEX_URLS }}
   PYTHONUTF8: '1'
   PROJECT_URL: ${{ vars.PROJECT_URL }}
   TELEGRAM_GROUP_URL: ${{ vars.TELEGRAM_GROUP_URL }}
@@ -31,8 +32,10 @@ jobs:
       - name: Checkout Hongguo module
         uses: actions/checkout@v4
         with:
-          repository: guoapp-modules/hongguo
-          path: bundled-modules/hongguo
+          repository: gentoobreaking/video-src
+          path: video-src
+      - name: Stage Hongguo module
+        run: mkdir -p bundled-modules && cp -r video-src/hongguo bundled-modules/hongguo
       - name: Setup Python
         uses: actions/setup-python@v5
         with:

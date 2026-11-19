@@ -111,3 +111,65 @@ func TestModuleIndexInstallFallsBackAndVerifies(t *testing.T) {
 		t.Fatalf("format error = %v", err)
 	}
 }
+
+func TestModuleIndexMonorepoSubpathAndCustomAddresses(t *testing.T) {
+	example := filepath.Join("..", "module_example", "jsexample")
+	files := map[string][]byte{}
+	sums := map[string]string{}
+	for _, name := range []string{moduleManifest, moduleEntry} {
+		data, err := os.ReadFile(filepath.Join(example, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum := sha256.Sum256(data)
+		files[name], sums[name] = data, hex.EncodeToString(sum[:])
+	}
+	entry := func(id, tag string, hashes map[string]string) moduleIndexEntry {
+		return moduleIndexEntry{ID: id, Name: id, Version: "1.0.0", API: moduleAPIVersion, Repo: "owner/mono", Tag: tag, SHA256: hashes}
+	}
+	index, err := json.Marshal(map[string]any{"format": moduleIndexFormat, "modules": []moduleIndexEntry{
+		entry("jsexample", "jsexample-v1.0.0", sums),
+		entry("mismatch", "other-v1.0.0", sums),
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rootHits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch {
+		case request.URL.Path == "/custom/index.json":
+			_, _ = writer.Write(index)
+		case strings.HasPrefix(request.URL.Path, "/files/owner/mono/jsexample-v1.0.0/jsexample/"):
+			_, _ = writer.Write(files[filepath.Base(request.URL.Path)])
+		case strings.HasPrefix(request.URL.Path, "/files/owner/mono/jsexample-v1.0.0/"):
+			rootHits.Add(1)
+			http.NotFound(writer, request)
+		default:
+			http.NotFound(writer, request)
+		}
+	}))
+	t.Cleanup(server.Close)
+	previous := nativeModuleIndex
+	nativeModuleIndex = server.URL + "/custom/index.json"
+	t.Cleanup(func() { nativeModuleIndex = previous })
+	addresses, patterns := moduleIndexAddresses, moduleFileAddresses
+	moduleFileAddresses = []string{server.URL + "/files/%s/%s/%s"}
+	t.Cleanup(func() { nativeModuleIndex, moduleFileAddresses, moduleIndexAddresses = previous, patterns, addresses })
+	if list := indexAddresses(); len(list) != 1 || list[0] != server.URL+"/custom/index.json" {
+		t.Fatalf("indexAddresses = %v", list)
+	}
+
+	engine := &nativeEngine{downloader: &Downloader{cfg: Config{dataDir: t.TempDir()}, client: server.Client()}, cacheDirectory: t.TempDir()}
+	ctx := context.Background()
+	entries, _, err := engine.moduleIndex(ctx)
+	if err != nil || len(entries) != 1 || entries[0].ID != "jsexample" {
+		t.Fatalf("index = %+v, %v", entries, err)
+	}
+	info, err := engine.prepareModule(ctx, "", "", "jsexample", false)
+	if err != nil || info.ID != "jsexample" || info.Version != "1.0.0" {
+		t.Fatalf("prepare = %+v, %v", info, err)
+	}
+	if rootHits.Load() == 0 {
+		t.Fatal("expected root path attempts before subpath fallback")
+	}
+}
