@@ -11,7 +11,7 @@ Flutter 多端獨立短劇影視應用，手機、平板、電腦和電視分別
 ![Flutter](https://img.shields.io/badge/Flutter-3.47.9-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Platforms](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Windows%20%7C%20macOS-8fa3bc?style=flat-square)
 
-[English](README.md) · 繁體中文 · [简体中文](README.zh-CN.md)
+[English](README.en.md) · 繁體中文 · [简体中文](README.zh-CN.md)
 
 [功能](#功能) · [本 fork 的修改](#本-fork-的修改) · [安裝](#安裝) · [隱私](#檢查更新與使用統計) · [開發](#開發)
 

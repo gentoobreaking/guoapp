@@ -1,152 +1,152 @@
 <div align="center">
 
-<img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫 icon">
+<img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" width="120" alt="影片庫圖示">
 
 # 影片庫 (VideoApp)
 
-A Flutter short-drama streaming app, with dedicated layouts for phones, tablets, desktops and TVs.
+Flutter 多端獨立短劇影視應用，手機、平板、電腦和電視分別適配。
 
 [![Release](https://img.shields.io/github/v/release/gentoobreaking/guoapp?style=flat-square&color=3d4656)](https://github.com/gentoobreaking/guoapp/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-3d4656?style=flat-square)](LICENSE)
 ![Flutter](https://img.shields.io/badge/Flutter-3.47.9-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Platforms](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Windows%20%7C%20macOS-8fa3bc?style=flat-square)
 
-English · [繁體中文](README.zh-TW.md) · [简体中文](README.zh-CN.md)
+[English](README.en.md) · 繁體中文 · [简体中文](README.zh-CN.md)
 
-[Features](#features) · [Fork changes](#what-this-fork-adds) · [Installation](#installation) · [Privacy](#update-checks--anonymous-statistics) · [Development](#development)
+[功能](#功能) · [本 fork 的修改](#本-fork-的修改) · [安裝](#安裝) · [隱私](#檢查更新與使用統計) · [開發](#開發)
 
 </div>
 
 ---
 
-This repository is a fork of [Xanerix/guoapp](https://github.com/Xanerix/guoapp), which in turn was adapted from the source code of [fish2018](https://github.com/fish2018). The hongguo source module ships with official packages; other sources install as modules from the in-app **Modules** store.
+本專案 fork 自 [Xanerix/guoapp](https://github.com/Xanerix/guoapp)，上游改編自 [fish2018](https://github.com/fish2018) 的原始碼。安裝包內建紅果站源，其餘站源以模組形式在應用內的**模組**商店安裝。
 
 > [!WARNING]
-> The project is under active development. User data is not guaranteed and may be lost when upgrading between versions.
+> 專案處於開發階段，不對使用者資料做擔保，資料可能在版本更新時遺失。
 
-## What this fork adds
+## 本 fork 的修改
 
-Differences from upstream as of version 2.0.1 (Nov 2026):
+相對上游（應用版本 2.0.1，2026 年 11 月）的差異：
 
-- **Downloads on Android TV** — upstream excludes TV devices from downloads. This fork brings the full download flow to TV: an entry in *Mine*, download queue and library pages laid out with TV overscan-safe margins, and D-pad friendly dialogs for batch and range selection.
-- **Multi-episode preload** — beyond pre-buffering the next episode, a 「预载为完整下载」(preload as full download) mode fully downloads upcoming episodes in watch order (1–5 episodes ahead) so playback keeps going on weak or offline networks. Scheduling is idempotent and skips VIP episodes according to download preferences.
-- **Tunable resource settings** — admin settings for HLS segment concurrency (1–8), prefetch size (4/8/16 MB) and catalog request concurrency (1–6), persisted in the Go core and applied to downloads, prefetch and catalog requests.
-- **Audio focus (Android)** — the player requests proper audio focus and pauses on transient loss (including duck requests); only focus-caused pauses auto-resume; focus is abandoned when leaving the player. Picture-in-picture and audio focus share one native callback dispatcher.
-- **Faster episode switching** — preloaded plans trust the source's stated credential expiry (capped at 10 minutes) instead of being discarded early; a 25-second watchdog cancels and retries a stuck media resolution; a 「重新获取」(re-resolve) button appears after 12 seconds of loading.
-- **Quality filter** — the clarity menu only lists 720P and above (auto still falls back). The *Discover* list offers 全部画质 / 720P+ / 1080P filters based on per-drama quality learned locally (recorded on playback, plus one background probe of the first episode when a detail page is opened).
-- Misc: Gradle wrapper switched to the `-bin` distribution, Android Gradle Plugin 9.1.1.
+- **電視下載閉環**——上游不提供電視端下載。本 fork 在電視上補齊完整下載流程：「我的」頁下載入口、下載佇列與已下載頁採電視過掃描安全邊距的佈局，批次與範圍選集對話框支援 D-pad 操作。
+- **多集預載**——除了提前緩衝下一集，「预载为完整下载」模式會按觀看順序把後續集數整集下載到磁碟（可預載 1–5 集），弱網或離線也能連續觀看。排程冪等去重，並依下載偏好跳過 VIP 集。
+- **資源參數可調**——管理員可設定 HLS 分片下載並行數（1–8）、預取大小（4/8/16 MB）與目錄請求並行數（1–6），由 Go 核心持久化，實際作用於下載、預取與目錄請求。
+- **音訊焦點（Android）**——播放器正確申請音訊焦點，短暫失去焦點（含 duck 請求）即暫停；只有因焦點而暫停的播放會自動恢復；離開播放頁歸還焦點。子母畫面與音訊焦點共用同一個原生回呼分發器。
+- **切集更快**——預載計畫信任站源宣告的憑證有效期（上限 10 分鐘），不再被提前作廢；解析播放地址有 25 秒看門狗，卡住自動取消重試；載入超過 12 秒顯示「重新获取」按鈕。
+- **畫質篩選**——清晰度選單只列出 720P 及以上（「自动」仍會回退到低畫質）；「發現」列表提供 全部画质 / 720P+ / 1080P 篩選，依本地觀測到的每部劇畫質（播放時記錄；開啟詳情頁時會在背景解析第一集補齊記錄）。
+- 其他：Gradle wrapper 改用 `-bin` 發行包，Android Gradle Plugin 9.1.1。
 
-Source catalogs do not publish video quality, so the list filter works from these locally observed records — dramas you have not played or opened yet are hidden while a filter is active.
+目錄 API 不提供影片畫質資訊，列表篩選因此基於這些本地觀測記錄——篩選開啟時，還沒播放或開啟過詳情的劇會被隱藏。
 
-## Features
+## 功能
 
-### Interface & appearance
+### 介面與外觀
 
-- **Navigation**: 发现 (Discover) / 追剧 (Following) / 我的 (Mine). Phones use a bottom bar, tablets and desktops a sidebar (collapsible), TVs a top tab bar; on wide screens sub-pages open to the right of the sidebar.
-- **UI modes**: automatic, TV, phone, tablet, window (desktop only); once chosen manually it no longer follows window width. TV mode forces landscape, phone mode locks portrait.
-- **Themes**: follow-system color (Android 12+ from wallpaper, Windows/macOS from accent color) or 6 preset palettes; light / dark / follow system.
+- **導覽**：发现（發現）/ 追剧（追劇）/ 我的。手機用底欄，平板和電腦用側欄（可收起），電視用頂部 Tab；寬屏的子頁面在側欄右側開啟。
+- **介面模式**：自動識別、電視、手機、平板、視窗（只有電腦提供）；手動選定後不隨視窗寬度切換。電視模式強制橫屏，手機模式鎖定豎屏。
+- **主題**：跟隨系統取色（Android 12+ 跟隨桌布，Windows 和 macOS 跟隨強調色）或 6 個預設色板；淺色 / 深色 / 跟隨系統。
 
-### Browsing
+### 瀏覽
 
-- **Discover**: switch sources next to the source name; category tabs are recommendations / all / rankings / genres, with rank numbers on ranking covers. The first tab shows a large card for the most recent or recommended drama. Endless scroll, pull-to-refresh. A quality filter (全部画质 / 720P+ / 1080P, fork addition) can narrow the list to dramas with known high-resolution sources.
-- **Search**: searches the current source only, keeps recent searches; hongguo provides input suggestions.
-- **Details**: blurred cover backdrop, episode count, completion status, category, views, tags and synopsis; 30 episodes per group, opened at the resume episode, watched episodes dimmed, VIP episodes marked. Pre-buffers the resume episode in the background. Opening a detail page also silently records the drama's source quality for the list filter.
+- **發現**：站源名旁切換站源；分類 Tab 依次為推薦 / 全部 / 各榜單 / 各題材，榜單封面標出名次。第一個 Tab 頂部大卡片顯示最近看過或推薦的劇。滑到底自動載入，下拉或「刷新」重新拉取當前分類。另有畫質篩選（全部画质 / 720P+ / 1080P，本 fork 新增），只列出已知高畫質片源的劇。
+- **搜尋**：只搜當前站源，保留最近搜尋；紅果有輸入聯想。
+- **詳情**：封面模糊作底，顯示集數、完結狀態、分類、播放量、標籤和簡介；選集每組 30 集，落在續播那一集，看過的集變淺，VIP 集有標記。開啟時背景預緩衝續播集；開啟詳情頁也會順便記錄該劇的片源畫質，供列表篩選使用。
 
-### Playback
+### 播放
 
-| Device | Experience |
+| 裝置 | 體驗 |
 | --- | --- |
-| Desktop | Video left, episode list right; widescreen and fullscreen supported; hover menus for clarity, speed and volume; keyboard shortcuts (Space, Enter, arrows, Page Up / Down, M, …) |
-| Phone | Portrait immersive mode: swipe vertically for next/previous episode, horizontal swipe to seek, long-press the picture for playback settings, long-press sides for 2× playback (speed configurable), lockable. Landscape videos show the picture on top and synopsis / episodes below, rotating to landscape goes fullscreen; in fullscreen, double-tap sides to seek, left half swipes brightness, right half volume |
-| Tablet | Landscape behaves like desktop, portrait like phone; fullscreen locks landscape |
-| TV | Controls float over the picture; when hidden, left/right keys seek 10 seconds; back closes options, then controls, then exits; episode changes return to the detail page |
+| 電腦 | 左邊影片、右邊選集欄，可寬屏、全螢幕；懸停彈出畫質、倍速、音量；支援空格、Enter、方向鍵、Page Up / Page Down、M 等快捷鍵 |
+| 手機 | 豎屏短劇沉浸式，上下翻頁切集，左右滑快進快退，長按畫面開啟「播放設定」，長按左右兩側倍速播放（預設 2 倍，可在設定裡改），可鎖定。橫屏影片豎拿時影片在上、簡介 / 選集在下，轉橫屏自動全螢幕；全螢幕雙擊兩側快退 / 快進，左半屏上下滑調亮度，右半屏調音量 |
+| 平板 | 橫拿同電腦，豎拿同手機，全螢幕期間鎖定橫屏 |
+| 電視 | 播控浮在畫面上，隱藏時左右鍵快退 / 快進 10 秒；返回鍵依次關閉選項、收起播控、退出；換集回詳情頁選 |
 
-Common to all devices: the next episode is pre-buffered so page turns and continuous play connect seamlessly; speed, clarity and danmaku toggles are remembered. Hongguo streaming has danmaku; local playback does not. On Android the player cooperates with other audio apps via audio focus (fork addition).
+所有裝置通用：下一集提前緩衝，翻頁和連播直接接上；倍速、畫質和彈幕開關會記住。紅果線上播放有彈幕，本機播放不載入。Android 上播放器會配合其他音訊應用正確處理音訊焦點（本 fork 新增）。
 
-### Following & history
+### 追劇與記錄
 
-- **Following**: just following / not following. Dramas with new episodes sort under "有更新" (updated) with the new episode count; searchable, filterable by source, multi-select unfollow. A background job checks a batch of unfinished dramas every 30 minutes.
-- **History**: grouped into today / yesterday / earlier; searchable, filterable by source, multi-select delete; "清空" (clear) only clears the listed items.
-- **Mine**: user card, recent watching, download summary and settings entry; the tab/sidebar icon shows how many episodes are downloading. Includes a download entry that opens the queue and downloaded library.
+- **追劇**：只分追 / 不追。有新集的劇排在「有更新」並標出更新集數；可搜尋、按站源篩選、多選取消。背景每 30 分鐘檢查一批未完結的追劇。
+- **觀看記錄**：按今天 / 昨天 / 更早分段；可搜尋、按站源篩選、多選刪除，「清空」只清當前列出的記錄。
+- **我的**：使用者卡、最近觀看、下載概況和設定入口；底欄 / 側欄圖示顯示正在下載的集數。內含下載入口，可開啟下載佇列與已下載片庫。
 
-### Downloads
+### 下載
 
-- Start from the detail page's 「下载选集」 or multi-select in the player's episode list (tap, drag, select all).
-- The downloads page splits into 「下载中」 (downloading) and 「已下载」 (downloaded), with pause / resume / retry per episode or for all; downloaded dramas can be played, deleted or topped up with missing episodes. Available on all form factors **including TV** (fork addition).
-- Each finished episode is automatically converted to a plain mp4 (hongguo is decrypted first, then the m3u8 is merged into one file) and saved as `download dir/drama title/第 N 集.mp4`, ready to copy out.
-- Episodes downloaded by older versions stay as-is; files merged by those versions are no longer listed.
+- 詳情頁「下载选集」或播放頁選集欄多選（點選、拖選、全選）。
+- 下載頁分「下载中」（下載中）「已下载」（已下載），可單集或全部暫停 / 繼續 / 重試；已下載按劇顯示，可播放、刪除、補齊缺集。所有裝置形態**包含電視**都可用（本 fork 新增）。
+- 每集下載完自動轉成普通 mp4（紅果先解密，m3u8 合成一個檔案），儲存為 `下載目錄/劇名/第 N 集.mp4`，可以直接拷出使用。
+- 舊版下載的分集保持原樣，舊版合併出的檔案不再列出。
 
-### Settings, users & backup
+### 設定、使用者與備份
 
-- **Settings**: 9 groups — appearance, playback, danmaku, download, storage, proxy, users, about, diagnostics — saved immediately; items you lack permission for are greyed out with a reason.
-- **Users**: separate following, history and searches per user, switch with a tap; admins add, edit and delete users and control which sources each can access and whether downloads are allowed.
-- **Backup**: export / restore users, following, history and preferences (including theme color); downloaded videos are unaffected; older backups still import. If local configuration is damaged, the startup screen can restore from a backup.
+- **設定**：外觀、播放、彈幕、下載、儲存、代理、使用者、關於、診斷 9 組，改動立即儲存；沒有權限的項目置灰並註明原因。
+- **使用者**：多使用者獨立保存追劇、記錄和搜尋，輕點即切換；管理員可新增、編輯、刪除使用者，設定能存取的站源和是否允許下載。
+- **備份**：匯出 / 還原使用者、追劇、觀看記錄和偏好設定（含主題色），已下載影片不受影響；舊版備份仍可匯入。本機設定損壞時，啟動頁可從備份還原。
 
-## Installation
+## 安裝
 
-Packages built from this fork are currently distributed as source builds — check the [Releases](https://github.com/gentoobreaking/guoapp/releases) page; prebuilt packages of the upstream project are on the [upstream Releases](https://github.com/Xanerix/guoapp/releases) page. `[NEEDS VERIFICATION: whether/when this fork will publish its own release packages]`
+本 fork 目前的安裝包以原始碼自行建置為主——請見 [Releases](https://github.com/gentoobreaking/guoapp/releases) 頁面；上游專案的現成安裝包在上游 [Releases](https://github.com/Xanerix/guoapp/releases)。`[NEEDS VERIFICATION：本 fork 何時/是否發布自己的安裝包]`
 
-Building the Android app from source:
+從原始碼建置 Android 版：
 
 ```sh
-python3 scripts/build_native.py --platform android --abi arm64-v8a   # or armeabi-v7a / x86_64
-python3 scripts/build_android.py                                     # all three ABIs
+python3 scripts/build_native.py --platform android --abi arm64-v8a   # 或 armeabi-v7a / x86_64
+python3 scripts/build_android.py                                     # 三種架構一次出齊
 ```
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for other platforms, module bundling (`--bundle`) and the release workflow.
+其他平台、模組內建方式（`--bundle`）與發布流程見 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
-| Platform | Packages |
+| 平台 | 安裝包 |
 | --- | --- |
-| Android 7.0+ | arm64-v8a / armeabi-v7a / x86_64 APKs — pick by device architecture (most phones: arm64-v8a; many TVs: armeabi-v7a); same signature upgrades in place |
-| Windows 10/11 x64 | Installer `*-setup.exe` (per-user, no admin needed) or portable ZIP; portable builds keep settings and downloads in `userdata` next to the executable |
-| iOS 15.1+ | Unsigned IPA, self-sign or sideload |
-| macOS 12+ | Universal dmg (Apple silicon & Intel), not notarized — remove quarantine on first launch |
+| Android 7.0+ | arm64-v8a / armeabi-v7a / x86_64 三種 APK，按裝置架構選擇（大多數手機選 arm64-v8a；不少電視是 armeabi-v7a）；同一簽名可覆蓋升級 |
+| Windows 10/11 x64 | 安裝包 `*-setup.exe`（裝到目前使用者、免管理員權限）或可攜 ZIP；可攜版的設定、記錄與下載存在程式旁的 `userdata` 目錄 |
+| iOS 15.1+ | 未簽名 IPA，需自行簽名或側載 |
+| macOS 12+ | 通用 dmg（Apple 晶片與 Intel），未公證——首次開啟前需解除隔離 |
 
 > [!TIP]
-> On Android, `INSTALL_FAILED_NO_MATCHING_ABIS` means the APK does not match the device architecture; pick the matching package.
+> Android 出現 `INSTALL_FAILED_NO_MATCHING_ABIS` 表示 APK 與裝置架構不符，請換對應架構的安裝包。
 
 > [!IMPORTANT]
-> For macOS, run before first launch:
+> macOS 首次開啟前在終端機執行：
 >
 > ```sh
 > xattr -dr com.apple.quarantine /Applications/影片庫.app
 > ```
 
-## Update checks & anonymous statistics
+## 檢查更新與使用統計
 
-| Request | Data sent |
+| 請求 | 送出內容 |
 | --- | --- |
-| Update check | Nothing is uploaded; only the latest version number is read. Checked once at startup, with an optional ignore / never remind |
-| Anonymous usage statistics | Only: a random ID generated at first report (unrelated to device or account), app version, platform (Android / iOS / Windows / macOS), build id (fixed `guoapp`) |
+| 檢查更新 | 不送出任何資料，只讀取最新版本號。啟動時檢查一次，有新版時每次啟動都會提示，可選擇忽略此版本或不再提醒 |
+| 匿名使用統計 | 只送出：首次統計時產生的隨機編號（與裝置、帳號無關）、應用版本號、平台（Android / iOS / Windows / macOS）、建置標識（固定為 `guoapp`） |
 
-No watch history, following, searches, source settings or any other personal data is sent. The receiver code lives in [`worker/`](worker). Both can be turned off separately in **Settings › About**. The statistics endpoint URL is injected at build time (`UPDATE_SERVER_URL`); when unset — as in local and fork builds without it — the app sends nothing at all.
+不送出觀看記錄、追劇、搜尋、站源設定或其他任何個人資料，接收端程式碼見 [`worker/`](worker)。兩項都可以在 **設定 › 關於** 分別關閉。統計端點網址在建置期注入（`UPDATE_SERVER_URL`）；未設定時（例如未配置此變數的本機與 fork 建置），應用完全不會發出對應請求。
 
-## Disclaimer
+## 免責聲明
 
-The app shows the following terms on first launch and requires consent before use:
+應用首次開啟時會顯示以下使用條款，同意後才能使用。
 
-- This project is open-source software; the framework and the source modules in the module store are public. It is for personal study and technical research only, **free of charge, with no paid service**.
-- This project is **not affiliated with** Hongguo Short Drama or any other source operator, and has no endorsement from them; names and trademarks belong to their owners.
-- The app **does not store, upload or distribute any media content**; all content comes from third-party sites and remains copyrighted by its owners. The app does not bypass source VIP or other authorization.
-- Except for the bundled hongguo source, sources are installed by the user as modules; modules access the third-party sites listed at install time. **Modules installed from files or URLs are not vetted by the module store — only install trusted modules, and the consequences are the installer's responsibility.**
-- Content watched or downloaded through the app is for trial viewing and personal study; **delete within 24 hours of downloading**, and support the official releases.
-- **Do not promote or share the app, its packages, download links, or the content obtained through it on any public platform** (social media, short-video platforms, forums, public groups, etc.).
-- Source content (including ads, links, QR codes and contact info) is provided by third parties; **verify it yourself and never trust requests for payment, investment, gambling or part-time jobs; the author is not liable for any resulting losses**.
-- Watch history, following and download data stay on the device; see [Update checks & anonymous statistics](#update-checks--anonymous-statistics) for what is sent online.
-- Users must comply with local laws and each site's terms of service; **the app must not be used for illegal or commercial purposes; all consequences of using this project are borne by the user**.
-- This project is provided "as is", with no warranty of availability, stability or fitness; **the author is not liable for any direct or indirect losses**.
-- If you disagree with these terms, **stop using and uninstall the app immediately**.
-- If you believe this project infringes your rights, contact us via an Issue; confirmed cases will be handled promptly.
+- 本專案是開源軟體，框架與模組商店中的站源模組程式碼公開，僅供個人學習與技術研究，**不收費，不提供任何付費服務**。
+- 本專案與紅果短劇及其他各站源的營運方**無任何關聯**，未獲得其授權或認可；文中提到的名稱和商標歸各自權利人所有。
+- 應用本身**不儲存、不上傳、不分發任何影視內容**，所有內容均來自第三方網站，版權歸原權利人所有；應用不解除源站 VIP 或其他授權限制。
+- 除內建的紅果外，站源以模組形式由使用者自行安裝，模組會存取安裝時列出的第三方網站；**從檔案或網址安裝的模組未經模組商店收錄，請只安裝可信來源的模組，由此產生的後果由使用者自行承擔**。
+- 透過本應用觀看或下載的內容僅供試看和個人學習交流，**請於下載後 24 小時內刪除**；如喜歡相關作品，請支持正版。
+- **不得在任何公開平台（如社群媒體、短影音平台、論壇、公開群組等）宣傳、分享本應用及其安裝包、下載連結或透過本應用取得的內容**。
+- 站源內容（包括其中的廣告、連結、QR Code、聯絡方式等）均由第三方提供，**請自行鑑別真偽，切勿輕信其中的儲值、投資、博彩、兼職等資訊；由此造成的任何財產損失，作者不承擔任何責任**。
+- 觀看記錄、追劇和下載等資料只保存在本裝置，連網送出的內容見 [檢查更新與使用統計](#檢查更新與使用統計)。
+- 使用者應遵守所在地法律法規及各網站的服務條款，**不得將本應用用於違法或商業用途；因使用本專案產生的一切後果由使用者自行承擔**。
+- 本專案按「現狀」提供，不對可用性、穩定性或適用性作任何保證，**作者不承擔由此造成的任何直接或間接損失**。
+- 如不同意以上條款，**請立即停止使用並解除安裝本應用**。
+- 如認為本專案侵犯了你的合法權益，請透過 Issue 聯絡，核实後會及時處理。
 
-## License
+## 授權
 
-This project is released under [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.html); see [LICENSE](LICENSE) for the full text. Third-party dependencies follow their own licenses (the bundled FFmpegKit min-gpl build includes GPL media components).
+本專案以 [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.html) 發布，全文見 [LICENSE](LICENSE)。第三方依賴遵循各自的授權條款（內建的 FFmpegKit min-gpl 包含 GPL 媒體元件）。
 
-## Development
+## 開發
 
-Build, test, architecture and release instructions: [DEVELOPMENT.md](DEVELOPMENT.md). Contributing and writing community source modules: [CONTRIBUTING.md](CONTRIBUTING.md). Version history: [CHANGELOG.md](CHANGELOG.md).
+建置、測試、架構和發布流程見 [DEVELOPMENT.md](DEVELOPMENT.md)，參與開發和編寫社群站源見 [CONTRIBUTING.md](CONTRIBUTING.md)，版本更新記錄見 [CHANGELOG.md](CHANGELOG.md)。
 
-## Acknowledgements
+## 致謝
 
-- [fish2018](https://github.com/fish2018) — author of the original source code
-- [Xanerix/guoapp](https://github.com/Xanerix/guoapp) — the upstream project this fork is based on
+- [fish2018](https://github.com/fish2018)——原始碼作者
+- [Xanerix/guoapp](https://github.com/Xanerix/guoapp)——本 fork 所基於的上游專案

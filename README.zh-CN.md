@@ -11,7 +11,7 @@ Flutter 多端独立影视应用，手机、平板、电脑和电视分别适配
 ![Flutter](https://img.shields.io/badge/Flutter-3.47.9-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Platforms](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Windows%20%7C%20macOS-8fa3bc?style=flat-square)
 
-[English](README.md) · [繁體中文](README.zh-TW.md) · 简体中文
+[English](README.en.md) · [繁體中文](README.md) · 简体中文
 
 [功能](#功能) · [本 fork 的改动](#本-fork-的改动) · [安装](#安装) · [隐私](#检查更新与使用统计) · [开发](#开发)
 
