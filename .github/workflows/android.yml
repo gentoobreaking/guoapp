@@ -2,6 +2,10 @@ name: Release Android
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Checks"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: write
@@ -19,6 +23,7 @@ env:
 
 jobs:
   prepare:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/prepare.yml
     secrets: inherit
 
