@@ -409,3 +409,9 @@
 
 - 修复「站源重定向白名单」开关关闭后，首次请求仍检查 manifest hosts 白名单的问题；开关关闭后站源模组可访问任意域名，仅用于调试或信任的站源。
 
+## 2.0.2+118
+
+(开发快照，需在客户端实测)
+
+- 修复 Android 上 LAN 探索啟動失敗：新增 `CHANGE_WIFI_MULTICAST_STATE` 與 `ACCESS_FINE_LOCATION` 權限，支援 UDP 多播裝置發現。
+
