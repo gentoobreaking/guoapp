@@ -20,6 +20,7 @@ import '../users/users_view.dart';
 import '../widgets/focus_ring.dart';
 import '../widgets/form_text_field.dart';
 import '../widgets/group_card.dart';
+import '../../lan_sync.dart';
 import 'appearance_settings.dart';
 import 'backup_actions.dart';
 import 'diary_view.dart';
@@ -35,7 +36,8 @@ enum SettingsGroup {
   proxy('代理', Icons.language_rounded),
   users('用户', Icons.manage_accounts_outlined),
   about('关于', Icons.info_outline_rounded),
-  diagnostics('诊断', Icons.receipt_long_outlined);
+  diagnostics('诊断', Icons.receipt_long_outlined),
+  lanSync('区域网同步', Icons.wifi_tethering_rounded);
 
   const SettingsGroup(this.label, this.icon);
   final String label;
@@ -109,6 +111,7 @@ class SettingsSection extends StatelessWidget {
               SettingsGroup.users => [UsersView(store: store, open: open)],
               SettingsGroup.about => _about(context),
               SettingsGroup.diagnostics => _diagnostics(),
+              SettingsGroup.lanSync => _lanSync(context, store),
               _ => const [],
             },
           ),
@@ -654,6 +657,84 @@ class SettingsSection extends StatelessWidget {
     _BackupCard(store: store),
   ];
 }
+
+List<Widget> _lanSync(BuildContext context, LocalStore store) => [
+  LanSyncSection(store: store),
+];
+
+class LanSyncSection extends StatefulWidget {
+  const LanSyncSection({super.key, required this.store});
+  final LocalStore store;
+
+  @override
+  State<LanSyncSection> createState() => _LanSyncSectionState();
+}
+
+class _LanSyncSectionState extends State<LanSyncSection> {
+  final LanSyncService _service = LanSyncService(NativeRepository());
+  bool _busy = false;
+  List<LanDevice> _devices = const [];
+  String? _message;
+
+  Future<void> _scan() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+      _devices = const [];
+    });
+    try {
+      _devices = await _service.scan();
+    } catch (error) {
+      _message = error.toString();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _sync(LanDevice device) async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await _service.syncFrom(device.id);
+      if (mounted) {
+        setState(() => _message = '已从 ${device.name} 同步完成');
+      }
+    } catch (error) {
+      if (mounted) setState(() => _message = error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsCard(
+      children: [
+        if (_message != null)
+          _Note('$_message'),
+        SettingsTile(
+          title: '扫描区域网设备',
+          subtitle: '发现同一 Wi-Fi 下运行本应用的其他设备',
+          enabled: !_busy,
+          onTap: _busy ? null : _scan,
+        ),
+        if (_devices.isNotEmpty) ...[
+          const Divider(indent: 16, endIndent: 16),
+          ..._devices.map((device) => SettingsTile(
+            title: device.name,
+            subtitle: '${device.address} · ${device.version}',
+            trailing: _busy ? null : const Icon(Icons.sync_rounded),
+            enabled: !_busy,
+            onTap: _busy ? null : () => _sync(device),
+          )),
+        ],
+      ],
+    );
+  }
+}
+
 
 class _UpdateCheckTile extends StatefulWidget {
   const _UpdateCheckTile();

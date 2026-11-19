@@ -156,6 +156,7 @@ type nativeEngine struct {
 	sourceCatalogMu     sync.Mutex
 	sourceCatalogs      map[string]chan struct{}
 	dataJob             nativeDataJob
+	lanSync             *lanSync
 }
 
 var nativeState struct {
@@ -273,6 +274,7 @@ func newNativeEngine(directory, cache, downloads string) (*nativeEngine, error) 
 			return nil
 		}}
 	engine := &nativeEngine{downloader: d, directory: directory, cacheDirectory: cache, defaultDownloads: nativeDefaultDownloads(directory), catalogs: map[string][]LibraryDrama{}, catalogStates: map[string]nativeCatalogState{}}
+	engine.lanSync = newLanSync(engine)
 	if filepath.IsAbs(downloads) {
 		engine.defaultDownloads = filepath.Clean(downloads)
 	}
@@ -493,6 +495,8 @@ func nativeDispatch(input nativeInput) (any, error) {
 		return engine.checkUpdate(ctx, input.Version)
 	case "reportUsage":
 		return true, engine.reportUsage(ctx, input.Version)
+	case "lan":
+		return engine.nativeLan(ctx, input)
 	default:
 		return nil, errors.New("不支持的应用操作")
 	}

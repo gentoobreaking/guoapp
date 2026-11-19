@@ -161,6 +161,7 @@ class _SettingsPageState extends State<SettingsPage> {
       SettingsGroup.about =>
         scope.version.isEmpty ? '版本未知' : '版本 ${scope.version}',
       SettingsGroup.diagnostics => '播放调试日记、备份与恢复',
+      SettingsGroup.lanSync => '区域网设备发现与观看纪录同步',
     };
   }
 

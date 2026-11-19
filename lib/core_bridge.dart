@@ -199,6 +199,14 @@ abstract class AppRepository {
     required SoraniCaptchaTrack track,
   }) async => throw AppFailure('当前版本不支持登录青空次元');
   Future<SoraniAccount> soraniLogout() async => const SoraniAccount();
+  Future<void> lanStart() async => throw AppFailure('当前环境不支持 LAN 同步');
+  Future<void> lanStop() async => throw AppFailure('当前环境不支持 LAN 同步');
+  Future<Map<String, dynamic>> lanScan() async =>
+      throw AppFailure('当前环境不支持 LAN 同步');
+  Future<Map<String, dynamic>> lanInfo() async =>
+      throw AppFailure('当前环境不支持 LAN 同步');
+  Future<void> lanSync(String deviceId) async =>
+      throw AppFailure('当前环境不支持 LAN 同步');
   Future<void> initialize();
   Future<CatalogPage> catalog(
     String source, {
@@ -662,6 +670,26 @@ class NativeRepository extends AppRepository {
     );
   }
 
+  @override
+  Future<void> lanStart() async =>
+      await _call({'action': 'lan', 'command': 'start'});
+
+  @override
+  Future<void> lanStop() async =>
+      await _call({'action': 'lan', 'command': 'stop'});
+
+  @override
+  Future<Map<String, dynamic>> lanScan() async =>
+      await _call({'action': 'lan', 'command': 'scan'});
+
+  @override
+  Future<Map<String, dynamic>> lanInfo() async =>
+      await _call({'action': 'lan', 'command': 'info'});
+
+  @override
+  Future<void> lanSync(String deviceId) async =>
+      await _call({'action': 'lan', 'command': 'sync', 'device': deviceId});
+
   Future<Map<String, dynamic>> _call(Map<String, dynamic> input) async {
     try {
       final action = input['action'] as String;
@@ -679,7 +707,10 @@ class NativeRepository extends AppRepository {
           action == 'cast' && {'stop', 'active'}.contains(input['command']) ||
           action == 'lan' &&
               {
+                'start',
                 'stop',
+                'scan',
+                'info',
                 'respond',
                 'cancel',
                 'disconnect',
