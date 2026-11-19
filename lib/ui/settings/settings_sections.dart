@@ -111,7 +111,10 @@ class SettingsSection extends StatelessWidget {
               SettingsGroup.users => [UsersView(store: store, open: open)],
               SettingsGroup.about => _about(context),
               SettingsGroup.diagnostics => _diagnostics(),
-              SettingsGroup.lanSync => _lanSync(context, store),
+              SettingsGroup.lanSync when Platform.isAndroid => _lanSync(
+                context,
+                store,
+              ),
               _ => const [],
             },
           ),

@@ -255,12 +255,13 @@ class _SettingsPageState extends State<SettingsPage> {
           GroupCard(
             children: [
               for (final group in SettingsGroup.values)
-                SettingsTile(
-                  icon: group.icon,
-                  title: group.label,
-                  subtitle: _summary(group),
-                  onTap: () => _openGroup(group),
-                ),
+                if (Platform.isAndroid || group != SettingsGroup.lanSync)
+                  SettingsTile(
+                    icon: group.icon,
+                    title: group.label,
+                    subtitle: _summary(group),
+                    onTap: () => _openGroup(group),
+                  ),
             ],
           ),
         ],
@@ -379,18 +380,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
   List<Widget> _groupItems(bool television) => [
     for (final group in SettingsGroup.values)
-      Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: _GroupItem(
-          key: ValueKey('settings-${group.name}'),
-          label: group.label,
-          selected: group == _group,
-          focusNode: _groupFocus[group.index],
-          autofocus: television && group == _group,
-          onTap: () => _select(group),
-          onFocus: television ? () => _select(group) : null,
+      if (Platform.isAndroid || group != SettingsGroup.lanSync)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: _GroupItem(
+            key: ValueKey('settings-${group.name}'),
+            label: group.label,
+            selected: group == _group,
+            focusNode: _groupFocus[group.index],
+            autofocus: television && group == _group,
+            onTap: () => _select(group),
+            onFocus: television ? () => _select(group) : null,
+          ),
         ),
-      ),
   ];
 
   Widget _detail(bool television) {
