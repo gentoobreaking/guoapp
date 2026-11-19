@@ -415,3 +415,9 @@
 
 - 修复 Android 上 LAN 探索啟動失敗：新增 `CHANGE_WIFI_MULTICAST_STATE` 與 `ACCESS_FINE_LOCATION` 權限，支援 UDP 多播裝置發現。
 
+## 2.0.2+119
+
+(开发快照，需在客户端实测)
+
+- 在 Flutter 層添加運行時位置權限請求（`permission_handler`）：啟動 LAN 探索前會請求 `ACCESS_FINE_LOCATION` 權限，Android 需要此權限才能列舉網路介面進行多播裝置發現。
+
