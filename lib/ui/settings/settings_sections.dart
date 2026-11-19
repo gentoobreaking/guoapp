@@ -714,9 +714,10 @@ class _LanSyncSectionState extends State<LanSyncSection> {
       children: [
         if (_message != null)
           _Note('$_message'),
+        _Note('两台设备都需先点击「扫描区域网设备」启动局域网服务，再互相发现。确保两台设备在同一 Wi-Fi 下，且未开启防火墙拦截。'),
         SettingsTile(
           title: '扫描区域网设备',
-          subtitle: '发现同一 Wi-Fi 下运行本应用的其他设备',
+          subtitle: '发现同一 Wi-Fi 下运行本应用的其他设备（约需 6 秒）',
           enabled: !_busy,
           onTap: _busy ? null : _scan,
         ),

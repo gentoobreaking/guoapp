@@ -20,7 +20,7 @@ const (
 	lanMulticastGroup = "239.255.255.250"
 	lanMulticastPort  = 19876
 	lanDiscoveryToken = "videoapp-lan-sync/1"
-	lanScanTimeout    = 3 * time.Second
+	lanScanTimeout    = 6 * time.Second
 	lanHTTPTimeout    = 10 * time.Second
 	lanDeviceTTL      = 5 * time.Minute
 )
@@ -193,6 +193,8 @@ func (ls *lanSync) startDiscovery() error {
 			"port":   info.Port,
 		})
 		dest := &net.UDPAddr{IP: net.ParseIP(lanMulticastGroup), Port: lanMulticastPort}
+		// 立即發送第一次廣播，不等待 ticker 第一次觸發
+		listenConn.WriteToUDP(payload, dest)
 		for ls.discovery.isRunning() {
 			select {
 			case <-ticker.C:
