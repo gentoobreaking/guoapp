@@ -73,11 +73,13 @@ class SwitchTile extends StatelessWidget {
     this.subtitle,
     required this.value,
     required this.onChanged,
+    this.enabled = true,
   });
   final String title;
   final String? subtitle;
   final bool value;
   final ValueChanged<bool>? onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => TileFocus(
@@ -87,7 +89,7 @@ class SwitchTile extends StatelessWidget {
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
       value: value,
-      onChanged: onChanged,
+      onChanged: enabled ? onChanged : null,
     ),
   );
 }

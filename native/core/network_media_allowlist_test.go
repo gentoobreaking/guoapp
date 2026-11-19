@@ -16,7 +16,7 @@ func TestMediaAddressCheckerBlocksRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	downloader := &Downloader{}
+	downloader := &Downloader{ModuleAllowlistStrict: true}
 	if _, err := downloader.doMediaRequestWithClient(request, &http.Client{}); err == nil {
 		t.Fatal("allowlist 之外的媒体请求应当被拒绝")
 	}
@@ -43,7 +43,7 @@ func TestMediaAddressCheckerBlocksRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	downloader := &Downloader{client: &http.Client{}}
+	downloader := &Downloader{client: &http.Client{}, ModuleAllowlistStrict: true}
 	if _, err := downloader.doMediaRequest(request); err == nil {
 		t.Fatal("重定向到 allowlist 之外的地址应当被拒绝")
 	}

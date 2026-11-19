@@ -40,6 +40,7 @@ type Downloader struct {
 	directOnce        sync.Once
 	direct            *http.Client
 	diagnostics       *diagnosticLog
+	ModuleAllowlistStrict bool
 }
 
 func DefaultConfig() Config { return Config{MaxPagesPerSort: 50, PageSize: 30, Retries: 2} }

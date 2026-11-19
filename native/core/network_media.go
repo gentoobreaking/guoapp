@@ -42,7 +42,7 @@ func (d *Downloader) doMediaRequestWithClient(request *http.Request, client *htt
 		client = credentials.client(client)
 	}
 	if check != nil {
-		client = checkedMediaClient(client, check)
+		client = checkedMediaClient(client, check, d.ModuleAllowlistStrict)
 	}
 	authorizer := d.mediaAuthorizer(request.URL)
 	authorization := ""

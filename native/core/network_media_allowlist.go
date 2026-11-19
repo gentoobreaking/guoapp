@@ -22,7 +22,8 @@ func mediaAddressCheckerFrom(ctx context.Context) mediaAddressChecker {
 }
 
 // checkedMediaClient 限制媒体请求的重定向目标仍在模块 allowlist 内。
-func checkedMediaClient(client *http.Client, check mediaAddressChecker) *http.Client {
+// strict 为 true 时，重定向目标必须在 allowlist 内；false 时允许任意重定向目标。
+func checkedMediaClient(client *http.Client, check mediaAddressChecker, strict bool) *http.Client {
 	scoped := *client
 	previous := scoped.CheckRedirect
 	scoped.CheckRedirect = func(request *http.Request, via []*http.Request) error {
@@ -31,7 +32,10 @@ func checkedMediaClient(client *http.Client, check mediaAddressChecker) *http.Cl
 				return err
 			}
 		}
-		return check(request.URL.String())
+		if strict {
+			return check(request.URL.String())
+		}
+		return nil
 	}
 	return &scoped
 }

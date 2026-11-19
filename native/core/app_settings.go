@@ -21,13 +21,15 @@ type nativeResourceSettings struct {
 	DownloadSegmentConcurrency int    `json:"downloadSegmentConcurrency"`
 	PrefetchLimit              int    `json:"prefetchLimit"`
 	DownloadBySource           bool   `json:"downloadBySource"`
+	ModuleAllowlistStrict      bool   `json:"moduleAllowlistStrict"`
 	Warning                    string `json:"warning,omitempty"`
 	SystemProxyStatus          string `json:"systemProxyStatus,omitempty"`
 }
 
 func defaultResourceSettings() nativeResourceSettings {
 	return nativeResourceSettings{ProxyMode: "auto", CatalogConcurrency: 3, DownloadConcurrency: 2,
-		DownloadSegmentConcurrency: nativeDownloadSegmentConcurrency, PrefetchLimit: nativePreloadLimit}
+		DownloadSegmentConcurrency: nativeDownloadSegmentConcurrency, PrefetchLimit: nativePreloadLimit,
+		ModuleAllowlistStrict: true}
 }
 
 // normalizeResourceSettings 兼容缺少新字段的旧设置文件。
@@ -109,10 +111,9 @@ func (engine *nativeEngine) loadResourceSettings() {
 	file := filepath.Join(engine.directory, "resource-settings.json")
 	info, err := os.Stat(file)
 	if err == nil {
-		var stored nativeResourceSettings
 		if info.Mode().IsRegular() && info.Size() <= 16384 {
-			if data, readErr := os.ReadFile(file); readErr == nil && json.Unmarshal(data, &stored) == nil {
-				settings = stored.normalize()
+			if data, readErr := os.ReadFile(file); readErr == nil && json.Unmarshal(data, &settings) == nil {
+				settings = settings.normalize()
 				if settings.validate() != nil {
 					settings = defaultResourceSettings()
 					settings.Warning = "网络与下载设置无法读取，已使用默认值，请重新保存设置"
@@ -168,6 +169,7 @@ func (engine *nativeEngine) applyResourceSettings(settings nativeResourceSetting
 		engine.downloads.scheduleLocked()
 		engine.downloads.mu.Unlock()
 	}
+	engine.downloader.ModuleAllowlistStrict = settings.ModuleAllowlistStrict
 }
 
 func (engine *nativeEngine) saveResourceSettings(settings nativeResourceSettings) (nativeResourceSettings, error) {

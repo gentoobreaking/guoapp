@@ -15,13 +15,14 @@ class ResourceSettings {
     this.downloadSegmentConcurrency = 4,
     this.prefetchLimit = 4194304,
     this.downloadBySource = false,
+    this.moduleAllowlistStrict = true,
     this.warning = '',
     this.systemProxyStatus = '',
   });
   final String proxyMode, proxyUrl, warning, systemProxyStatus;
   final int catalogConcurrency, downloadConcurrency, downloadSegmentConcurrency;
   final int prefetchLimit;
-  final bool downloadBySource;
+  final bool downloadBySource, moduleAllowlistStrict;
 
   factory ResourceSettings.fromJson(Map<String, dynamic> data) =>
       ResourceSettings(
@@ -34,6 +35,7 @@ class ResourceSettings {
         ),
         prefetchLimit: intValue(data['prefetchLimit']),
         downloadBySource: data['downloadBySource'] == true,
+        moduleAllowlistStrict: data['moduleAllowlistStrict'] as bool? ?? true,
         warning: data['warning'] as String? ?? '',
         systemProxyStatus: data['systemProxyStatus'] as String? ?? '',
       );
@@ -46,6 +48,7 @@ class ResourceSettings {
     int? downloadSegmentConcurrency,
     int? prefetchLimit,
     bool? downloadBySource,
+    bool? moduleAllowlistStrict,
   }) => ResourceSettings(
     proxyMode: proxyMode ?? this.proxyMode,
     proxyUrl: proxyUrl ?? this.proxyUrl,
@@ -55,6 +58,7 @@ class ResourceSettings {
         downloadSegmentConcurrency ?? this.downloadSegmentConcurrency,
     prefetchLimit: prefetchLimit ?? this.prefetchLimit,
     downloadBySource: downloadBySource ?? this.downloadBySource,
+    moduleAllowlistStrict: moduleAllowlistStrict ?? this.moduleAllowlistStrict,
     warning: warning,
     systemProxyStatus: systemProxyStatus,
   );
@@ -67,6 +71,7 @@ class ResourceSettings {
     'downloadSegmentConcurrency': downloadSegmentConcurrency,
     'prefetchLimit': prefetchLimit,
     'downloadBySource': downloadBySource,
+    'moduleAllowlistStrict': moduleAllowlistStrict,
   };
 }
 
