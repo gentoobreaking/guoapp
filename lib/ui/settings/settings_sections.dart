@@ -556,18 +556,19 @@ class SettingsSection extends StatelessWidget {
               enabled: editable,
               onTap: () => _editProxy(context, settings),
             ),
-          SwitchTile(
-            title: '站源重定向白名单',
-            subtitle: '关闭后，站源模组可跟随重定向访问未在清单声明的域名；开启后仅允许清单声明的域名',
-            value: settings!.moduleAllowlistStrict,
-            enabled: editable && admin,
-            onChanged: editable && admin
-                ? (value) => _saveResource(
-                    context,
-                    settings.copyWith(moduleAllowlistStrict: value),
-                  )
-                : null,
-          ),
+          if (settings != null)
+            SwitchTile(
+              title: '站源重定向白名单',
+              subtitle: '关闭后，站源模组可跟随重定向访问未在清单声明的域名；开启后仅允许清单声明的域名',
+              value: settings.moduleAllowlistStrict,
+              enabled: editable && admin,
+              onChanged: editable && admin
+                  ? (value) => _saveResource(
+                      context,
+                      settings.copyWith(moduleAllowlistStrict: value),
+                    )
+                  : null,
+            ),
         ],
       ),
     ];
