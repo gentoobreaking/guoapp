@@ -713,8 +713,7 @@ class _LanSyncSectionState extends State<LanSyncSection> {
   Widget build(BuildContext context) {
     return SettingsCard(
       children: [
-        if (_message != null)
-          _Note('$_message'),
+        if (_message != null) _Note('$_message'),
         _Note('两台设备都需先点击「扫描区域网设备」启动局域网服务，再互相发现。确保两台设备在同一 Wi-Fi 下，且未开启防火墙拦截。'),
         SettingsTile(
           title: '扫描区域网设备',
@@ -724,19 +723,20 @@ class _LanSyncSectionState extends State<LanSyncSection> {
         ),
         if (_devices.isNotEmpty) ...[
           const Divider(indent: 16, endIndent: 16),
-          ..._devices.map((device) => SettingsTile(
-            title: device.name,
-            subtitle: '${device.address} · ${device.version}',
-            trailing: _busy ? null : const Icon(Icons.sync_rounded),
-            enabled: !_busy,
-            onTap: _busy ? null : () => _sync(device),
-          )),
+          ..._devices.map(
+            (device) => SettingsTile(
+              title: device.name,
+              subtitle: '${device.address} · ${device.version}',
+              trailing: _busy ? null : const Icon(Icons.sync_rounded),
+              enabled: !_busy,
+              onTap: _busy ? null : () => _sync(device),
+            ),
+          ),
         ],
       ],
     );
   }
 }
-
 
 class _UpdateCheckTile extends StatefulWidget {
   const _UpdateCheckTile();

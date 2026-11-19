@@ -18,12 +18,12 @@ class LanDevice {
   final int port;
 
   factory LanDevice.fromJson(Map<String, dynamic> json) => LanDevice(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        version: json['version'] as String? ?? '',
-        host: json['host'] as String? ?? '',
-        port: json['port'] as int? ?? 0,
-      );
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    version: json['version'] as String? ?? '',
+    host: json['host'] as String? ?? '',
+    port: json['port'] as int? ?? 0,
+  );
 
   String get address => '$host:$port';
 }
