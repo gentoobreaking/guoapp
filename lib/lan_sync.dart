@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:permission_handler/permission_handler.dart';
+
 import 'core_bridge.dart';
 
 /// 區網內發現的裝置資訊。
@@ -35,9 +37,21 @@ class LanSyncService {
 
   bool _started = false;
 
+  /// 請求位置權限（Android 需要此權限才能列舉網路介面以進行多播探索）。
+  Future<bool> _requestLocationPermission() async {
+    final status = await Permission.location.request();
+    if (status.isGranted) return true;
+    if (status.isLimited) return true;
+    if (status.isPermanentlyDenied) {
+      throw Exception('定位權限已被永久拒絕，請在系統設定中開啟「位置」權限，否則無法掃描區網裝置。');
+    }
+    return false;
+  }
+
   /// 啟動本地 LAN 同步伺服器（HTTP + UDP 探索）。
   Future<void> start() async {
     if (_started) return;
+    await _requestLocationPermission();
     await repository.lanStart();
     _started = true;
   }
