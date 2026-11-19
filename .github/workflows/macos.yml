@@ -3,6 +3,10 @@ name: Release macOS
 on:
   workflow_dispatch:
 
+concurrency:
+  group: release-macos
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

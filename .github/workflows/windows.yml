@@ -3,6 +3,10 @@ name: Release Windows
 on:
   workflow_dispatch:
 
+concurrency:
+  group: release-windows
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

@@ -7,6 +7,10 @@ on:
     types: [completed]
     branches: [main]
 
+concurrency:
+  group: release-android
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
