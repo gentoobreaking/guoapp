@@ -569,7 +569,7 @@ class LocalStore extends ChangeNotifier {
   bool get autoExport => _flag('exportAfterDownload', false);
   bool get deleteAfterAutoExport => _flag('deleteAfterAutoExport', false);
   bool get deleteAfterManualExport => _flag('deleteAfterManualExport', false);
-  bool get shareUsage => _flag('shareUsage', true);
+  bool get shareUsage => _flag('shareUsage', false);
   int get acceptedTerms => switch (_settings['acceptedTerms']) {
     final int version => version,
     _ => 0,
