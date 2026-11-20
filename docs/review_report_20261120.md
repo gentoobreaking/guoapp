@@ -204,7 +204,7 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 | P0-3 | Go 核心全庫鎖內 I/O 移出鎖之外 | 中 | §4.3 | ⬜ 待處理（風險中高，需先補測試） |
 | P0-4 | goja VM 卸載釋放、`quickCall` 尊重取消、模組 JSON 大小上限 | 小 | §4.4 | ⬜ 待處理 |
 | P1-1 | `LocalStore` 拆分細分 Notifier，頁面資料組裝抽 `*_feed`/`*_state` | 中 | §4.5、§4.6 | ⬜ 待處理 |
-| P1-2 | `AppRepository` no-op 移至 `FakeRepository` | 小 | §4.7 | ⬜ 待處理 |
+| P1-2 | `AppRepository` no-op 移至 `FakeRepository` | 小 | §4.7 | ✅ 已完成（`AppRepository` 僅留抽象簽名，所有 no-op/throw 預設實作移至 `FakeRepository`） |
 | P1-3 | 平台判斷集中 `platform_capabilities.dart` | 小 | §4.8 | ⬜ 待處理 |
 | P1-4 | 刪除殘餘 `'lan'` action 權限豁免 | 極小 | §4.9 | ✅ 已完成（從 `_call` 的 `unrestricted` 集合中移除 `'lan'`，區網同步現在需先解鎖用戶） |
 | P2-1 | 補 `native/bridge` 與 `native/core` 重災區測試（下載、catalog cache、stream server、DNS/CDN） | 中 | §4.10 | ⚠️ 部分完成（已補 `network_limiter.go` 7 個測試、`app_catalog_cache.go` 純函數 8 個測試；`app_downloads.go`、`app_stream.go`、`network_dns.go`、`network_cdn.go` 仍為零測試） |
