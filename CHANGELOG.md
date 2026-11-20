@@ -2,6 +2,14 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+123
+
+### 更新内容
+
+- app_device.dart 的 catch (_) 改为记录到 DiaryService，避免静默吞掉错误
+- 新增 Dependabot、CodeQL 和 gosec 安全扫描（GitHub Actions）
+- Go 核心模组治理上限：jsProvider.Close() 在卸载时释放 goja VM；Unregister 自动调用 Close；quickCall 接受 context.Context 并尊重取消；模组返回 JSON 增加 16 MB 大小上限
+
 ## 2.0.2+122
 
 ### 更新内容
