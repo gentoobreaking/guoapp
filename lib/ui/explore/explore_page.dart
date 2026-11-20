@@ -6,7 +6,9 @@ import '../../drama_feed.dart';
 import '../../explore_feed.dart';
 import '../../local_store.dart';
 import '../../models.dart';
+import '../../source_modules.dart';
 import '../app_scope.dart';
+import '../modules/modules_page.dart';
 import '../cover_blur.dart';
 import '../shell/app_shell.dart';
 import '../theme/motion.dart';
@@ -40,11 +42,97 @@ class ExplorePageState extends State<ExplorePage> {
   final _tabsKey = GlobalKey();
   final _refreshKey = GlobalKey<RefreshIndicatorState>();
   String _shown = '';
+  List<SourceModule>? _modules;
+  ModuleStore? _index;
+  bool _moduleBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshModules();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _explore ??= ExploreFeed(AppScope.of(context).repository, widget.store);
+  }
+
+  Future<void> _refreshModules() async {
+    if (_moduleBusy) return;
+    setState(() => _moduleBusy = true);
+    try {
+      final repository = AppScope.of(context).repository;
+      final modules = await repository.modules();
+      final index = await repository.moduleIndex();
+      if (mounted) {
+        setState(() {
+          _modules = modules;
+          _index = index;
+          _moduleBusy = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _moduleBusy = false);
+    }
+  }
+
+  int get _moduleUpdateCount {
+    if (_modules == null || _index == null) return 0;
+    return _modules!.where((m) {
+      final entry = _index!.entries.firstWhere(
+        (e) => e.id == m.id,
+        orElse: () => ModuleIndexEntry(id: '', name: '', version: ''),
+      );
+      return m.error.isEmpty &&
+          entry.version.isNotEmpty &&
+          isNewerModuleVersion(entry.version, m.version);
+    }).length;
+  }
+
+  bool get _hasModuleUpdateBanner =>
+      widget.store.profile.admin &&
+      !widget.store.locked &&
+      _moduleUpdateCount > 0;
+
+  Widget _moduleUpdateBanner() {
+    return InkWell(
+      onTap: _openModules,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_upload_outlined,
+              size: 18,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '有 $_moduleUpdateCount 個站源模組可更新，請前往 我的 › 模組 安裝',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openModules() {
+    openPage<void>(context, (_) => ModulesPage(store: widget.store));
   }
 
   @override
@@ -217,6 +305,7 @@ class ExplorePageState extends State<ExplorePage> {
                   ],
                 ),
               if (!television || explore.feed!.items.isEmpty) tabs,
+              if (_hasModuleUpdateBanner) _moduleUpdateBanner(),
               Expanded(
                 child: _swipeTabs(
                   explore,
