@@ -54,7 +54,7 @@ def build_core(simulator=False, bundles=()):
     prepare_bundled_modules(bundles)
     go = shutil.which('go')
     if not go:
-        raise SystemExit('请安装 Go 1.24.1 或更新版本。')
+        raise SystemExit('请安装 Go 1.26.0 或更新版本。')
     environment = os.environ.copy()
     environment.setdefault('GOPROXY', 'https://goproxy.cn,direct')
     environment.setdefault('GOSUMDB', 'off')

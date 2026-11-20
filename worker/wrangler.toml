@@ -9,4 +9,4 @@ crons = ["17 * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "videoapp-stats"
-database_id = "27ba0660-0df0-4b5f-ac14-5406b48cdb09"
+# database_id 由部署環境透過 secret 注入，避免硬寫於版本控制
