@@ -402,7 +402,7 @@ void main() {
 
     test('resolve failure propagates error', () async {
       final repo = _StubRepository()
-        ..onResolve = (_, __, {int? quality}) =>
+        ..onResolve = (_, _, {int? quality}) =>
             Future.error(AppFailure('播放地址获取失败'));
       final loader = PlaybackLoader(repo);
 
