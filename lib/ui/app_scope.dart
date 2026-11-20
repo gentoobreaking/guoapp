@@ -1,18 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core_bridge.dart';
+import '../platform_capabilities.dart';
 
 enum FormFactor { phone, pad, window, television }
 
 const televisionInset = 58.0;
 
-bool get desktopPlatform => switch (defaultTargetPlatform) {
-  TargetPlatform.windows ||
-  TargetPlatform.macOS ||
-  TargetPlatform.linux => true,
-  _ => false,
-};
+bool get desktopPlatform => PlatformCapabilities.isDesktop;
 
 class AppScope extends InheritedWidget {
   const AppScope({

@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'core_bridge.dart';
+import 'platform_capabilities.dart';
 
 /// 原生侧主动回调（duanju/device 通道）的处理函数签名。
 typedef DeviceCallHandler = Future<void> Function(MethodCall call);
@@ -20,7 +20,7 @@ class AppDevice {
   static Future<AppDevice> detect({
     AppDevice fallback = const AppDevice(),
   }) async {
-    if (defaultTargetPlatform != TargetPlatform.android) {
+    if (!PlatformCapabilities.isAndroid) {
       try {
         final info = await PackageInfo.fromPlatform();
         return AppDevice(version: info.version);
@@ -51,7 +51,7 @@ class AppDevice {
   }
 
   static Future<bool> compatibleRendering() async {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!PlatformCapabilities.isAndroid) return false;
     try {
       return await channel.invokeMethod<bool>('compatibleRendering') ?? false;
     } catch (_) {
@@ -97,7 +97,7 @@ class AppDevice {
 
   /// 请求音频焦点（仅 Android 生效），返回是否获得。
   static Future<bool> requestAudioFocus() async {
-    if (defaultTargetPlatform != TargetPlatform.android) return true;
+    if (!PlatformCapabilities.isAndroid) return true;
     try {
       return await channel.invokeMethod<bool>('requestAudioFocus') ?? false;
     } catch (_) {
@@ -107,14 +107,14 @@ class AppDevice {
 
   /// 归还音频焦点（仅 Android 生效）。
   static Future<void> abandonAudioFocus() async {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+    if (!PlatformCapabilities.isAndroid) return;
     try {
       await channel.invokeMethod<void>('abandonAudioFocus');
     } catch (_) {}
   }
 
   static Future<bool> setCompatibleRendering(bool enabled) async {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!PlatformCapabilities.isAndroid) return false;
     try {
       await channel.invokeMethod('setCompatibleRendering', {
         'enabled': enabled,
@@ -126,11 +126,11 @@ class AppDevice {
   }
 
   static Future<void> setTelevisionMode(bool enabled) async {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
+    if (PlatformCapabilities.isIOS) {
       _televisionMode = enabled;
       return setPlayerOrientation(PlayerOrientation.auto);
     }
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+    if (!PlatformCapabilities.isAndroid) return;
     try {
       await channel.invokeMethod<void>('setTelevisionMode', {
         'enabled': enabled,
@@ -150,7 +150,7 @@ class AppDevice {
   static Future<void> setPlayerOrientation(
     PlayerOrientation orientation,
   ) async {
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (PlatformCapabilities.isAndroid) {
       try {
         await channel.invokeMethod<void>('setPlayerOrientation', {
           'mode': orientation.name,

@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_device.dart';
+import 'platform_capabilities.dart';
 import 'window_on_top.dart';
 
 typedef MiniWindowFrame = ({double left, double top, double extent});
@@ -31,7 +32,7 @@ Size _miniSize(double ratio, double extent) =>
 
 class PictureInPicture extends ChangeNotifier {
   PictureInPicture._() {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+    if (!PlatformCapabilities.isAndroid) return;
     AppDevice.addDeviceHandler(_handle);
     AppLifecycleListener(onStateChange: _lifecycleChanged);
     unawaited(_status());
@@ -50,12 +51,8 @@ class PictureInPicture extends ChangeNotifier {
   Map<String, Object>? _sent;
   ({Rect bounds, bool maximized, bool fullScreen})? _macRestore;
 
-  bool get available => switch (defaultTargetPlatform) {
-    TargetPlatform.android => _supported,
-    TargetPlatform.windows || TargetPlatform.macOS => true,
-    _ => false,
-  };
-
+  bool get available =>
+      PlatformCapabilities.isAndroid ? _supported : PlatformCapabilities.isDesktop;
   bool get shown => _active || _pending || _window;
   bool get leaving => _leaving;
   bool get window => _window;
@@ -116,7 +113,7 @@ class PictureInPicture extends ChangeNotifier {
     required bool hasNext,
     required bool autoEnter,
   }) {
-    if (defaultTargetPlatform != TargetPlatform.android || !_supported) return;
+    if (!PlatformCapabilities.isAndroid || !_supported) return;
     final next = <String, Object>{
       ..._ratio(aspectRatio),
       'playing': playing,
@@ -145,7 +142,7 @@ class PictureInPicture extends ChangeNotifier {
 
   Future<void> enter(double aspectRatio, {MiniWindowFrame? frame}) async {
     if (shown || !available) return;
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (PlatformCapabilities.isAndroid) {
       return _enterSystem(aspectRatio);
     }
     final ratio = _clampRatio(aspectRatio);
@@ -154,7 +151,7 @@ class PictureInPicture extends ChangeNotifier {
     notifyListeners();
     await WidgetsBinding.instance.endOfFrame;
     try {
-      if (defaultTargetPlatform == TargetPlatform.windows) {
+      if (PlatformCapabilities.isWindows) {
         await AppDevice.channel.invokeMethod<void>('setMiniWindow', {
           'enabled': true,
           'aspect': ratio,
@@ -232,7 +229,7 @@ class PictureInPicture extends ChangeNotifier {
     final ratio = _clampRatio(aspectRatio);
     if (!_window || ratio == _windowRatio) return;
     _windowRatio = ratio;
-    if (defaultTargetPlatform == TargetPlatform.windows) {
+    if (PlatformCapabilities.isWindows) {
       unawaited(
         AppDevice.channel
             .invokeMethod<void>('setMiniWindow', {
@@ -258,7 +255,7 @@ class PictureInPicture extends ChangeNotifier {
     if (!_window) return null;
     MiniWindowFrame? frame;
     try {
-      if (defaultTargetPlatform == TargetPlatform.windows) {
+      if (PlatformCapabilities.isWindows) {
         final values = await AppDevice.channel.invokeMapMethod<String, dynamic>(
           'setMiniWindow',
           {'enabled': false},
