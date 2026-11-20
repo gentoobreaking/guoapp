@@ -1,6 +1,0 @@
-rules:
-  # Ignore G104 (unused errors) - it's common and acceptable to ignore close errors in defer statements
-  - id: G104
-    severity: LOW
-    confidence: HIGH
-    excluded: true
