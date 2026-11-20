@@ -2,8 +2,8 @@
 # videoapp（影片庫）專案審查報告
 
 > 審查日期：2026-11-20
-> 當前版本：2.0.2+120（pubspec.yaml）
-> HEAD：`17c63e6 sync docs`（main，工作區乾淨）
+> 當前版本：2.0.2+123（pubspec.yaml）
+> HEAD：`84739a8 fix: gosec G115 - add int64 overflow checks for uint64->int64 convers…`（main，工作區乾淨）
 > 前次審查：`docs/review_report_20261118.md`（2026-11-18）
 
 ## 一、摘要
@@ -18,7 +18,7 @@
 | --- | --- |
 | 名稱 | videoapp / 影片庫（中文名固定，英文 VideoApp） |
 | 語言與框架 | Flutter 3.47.9（CI 釘定，`.fvmrc`）、Dart 3.12+、Go 1.26.0+（`native/go.mod`） |
-| 版本 | 2.0.2+120 |
+| 版本 | 2.0.2+123 |
 | 平台 | Android 7.0+、iOS 15.1+、Windows 10/11 x64、macOS 12+ |
 | 授權 | GNU GPL v3.0（FFmpegKit min-gpl 含 GPL 媒體元件） |
 | 上游 | fork 自 `Xanerix/guoapp`，再改編自 `fish2018`；本 fork 為 `gentoobreaking/guoapp` |
@@ -214,7 +214,7 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 | P3-1 | 修三本 README 設定組數（8→9）、DEVELOPMENT.md Go 版本 drift | 極小 | §4.13、§4.14 | ✅ 已完成（README 已為 9 組；`DEVELOPMENT.md` 已為 `Go 1.26.0+`；`scripts/build_native.py`、`scripts/build_ios.py` 已改為 `1.26.0`） |
 | P3-2 | Worker `/v1/ping` 限流/鑑權、`scheduled()` try/catch、`database_id` 秘密化、`repository` 改本 fork | 小 | §4.14 | ✅ 已完成（`repository` 已改為 `gentoobreaking/guoapp`；`/v1/ping` 新增 IP 速率限制 10 次/分鐘與可選 `PING_TOKEN` Bearer 鑑權；`scheduled()` 加入 try/catch；`wrangler.toml` 移除硬寫 `database_id`） |
 | P3-3 | Android release 開 minify/shrink、`namespace` 與 `applicationId` 同步、移除 `GeneratedPluginRegistrant` hack | 小 | §4.15 | ⬜ 待處理 |
-| P3-4 | `catch (_) {}` 丟進 `DiaryService`；CI SHA 釘版 actions、加 Dependabot/CodeQL/gosec | 小 | §4.16、§4.17 | ⚠️ 部分完成（CI SHA 已釘定；Dependabot/CodeQL/gosec 已新增；`catch (_) {}` 已處理 `app_device.dart`，其餘檔案仍待處理） |
+| P3-4 | `catch (_) {}` 丟進 `DiaryService`；CI SHA 釘版 actions、加 Dependabot/CodeQL/gosec | 小 | §4.16、§4.17 | ✅ 已完成（CI SHA 已釘定；Dependabot/CodeQL/gosec 已新增；gosec 配置已忽略低優先級 G104 規則；`catch (_) {}` 全部改為 DiaryService 記錄） |
 
 ## 七、結論
 
@@ -226,7 +226,7 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 
 | 路徑 | 說明 |
 | --- | --- |
-| `pubspec.yaml` | 專案設定與依賴（版本 2.0.2+120） |
+| `pubspec.yaml` | 專案設定與依賴（版本 2.0.2+123） |
 | `lib/main.dart` | Flutter 入口 |
 | `lib/core_bridge.dart` | FFI 與 `AppRepository` 介面 |
 | `lib/local_store.dart` | 本地儲存（單一 ChangeNotifier，1325 行） |
