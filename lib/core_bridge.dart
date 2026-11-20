@@ -704,17 +704,7 @@ class NativeRepository extends AppRepository {
           }.contains(action) ||
           action == 'workLease' && input['command'] == 'end' ||
           action == 'finishConversion' ||
-          action == 'cast' && {'stop', 'active'}.contains(input['command']) ||
-          action == 'lan' &&
-              {
-                'start',
-                'stop',
-                'scan',
-                'info',
-                'respond',
-                'cancel',
-                'disconnect',
-              }.contains(input['command']);
+          action == 'cast' && {'stop', 'active'}.contains(input['command']);
       final epoch = access?.profileEpoch;
       if (!unrestricted && access?.locked == true) throw AppFailure('请先解锁当前用户');
       if ({
