@@ -205,7 +205,7 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 | P0-4 | goja VM 卸載釋放、`quickCall` 尊重取消、模組 JSON 大小上限 | 小 | §4.4 | ⬜ 待處理 |
 | P1-1 | `LocalStore` 拆分細分 Notifier，頁面資料組裝抽 `*_feed`/`*_state` | 中 | §4.5、§4.6 | ⬜ 待處理 |
 | P1-2 | `AppRepository` no-op 移至 `FakeRepository` | 小 | §4.7 | ✅ 已完成（`AppRepository` 僅留抽象簽名，所有 no-op/throw 預設實作移至 `FakeRepository`） |
-| P1-3 | 平台判斷集中 `platform_capabilities.dart` | 小 | §4.8 | ⬜ 待處理 |
+| P1-3 | 平台判斷集中 `platform_capabilities.dart` | 小 | §4.8 | ✅ 已完成（新增 `lib/platform_capabilities.dart`，遷移 `app_scope.dart`、`app_device.dart`、`picture_in_picture.dart`） |
 | P1-4 | 刪除殘餘 `'lan'` action 權限豁免 | 極小 | §4.9 | ✅ 已完成（從 `_call` 的 `unrestricted` 集合中移除 `'lan'`，區網同步現在需先解鎖用戶） |
 | P2-1 | 補 `native/bridge` 與 `native/core` 重災區測試（下載、catalog cache、stream server、DNS/CDN） | 中 | §4.10 | ⚠️ 部分完成（已補 `network_limiter.go` 7 個測試、`app_catalog_cache.go` 純函數 8 個測試；`app_downloads.go`、`app_stream.go`、`network_dns.go`、`network_cdn.go` 仍為零測試） |
 | P2-2 | 補 Dart 缺席模組測試（`playback_loader`/`playback_recovery`/`media_pipeline`/`local_snapshot`/`portable_data`/`background_downloads`/`download_preferences`/`cover_decoder`） | 中 | §4.10 | ⚠️ 部分完成（已補 `download_preferences`、`playback_recovery`、`local_snapshot`、`playback_loader` 4 個模組測試；`media_pipeline`、`local_snapshot`、`portable_data`、`background_downloads`、`cover_decoder` 仍缺測試） |
