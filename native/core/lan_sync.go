@@ -14,11 +14,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
-	lanMulticastGroup = "239.255.255.250"
-	lanMulticastPort  = 19876
+	lanBroadcastAddr  = "255.255.255.255"
+	lanDiscoveryPort  = 19876
 	lanDiscoveryToken = "videoapp-lan-sync/1"
 	lanScanTimeout    = 6 * time.Second
 	lanHTTPTimeout    = 10 * time.Second
@@ -50,20 +52,22 @@ type lanSyncInfo struct {
 
 // lanSync 本機 LAN 同步伺服器與發現客戶端。
 type lanSync struct {
-	mu          sync.Mutex
-	devices     map[string]*lanSyncDevice
-	httpServer  *http.Server
-	httpPort    int
-	discovery   *lanDiscovery
-	engine      *nativeEngine
+	mu         sync.Mutex
+	devices    map[string]*lanSyncDevice
+	httpServer *http.Server
+	httpPort   int
+	discovery  *lanDiscovery
+	engine     *nativeEngine
 }
 
-// lanDiscovery 負責 UDP 多播發現與廣播本機存在。
+// lanDiscovery 負責 UDP 廣播探索。
+// Android 11+ 禁止 App 使用 netlink 列舉網路介面（net.Interfaces 會回報
+// netlinkrib: permission denied），因此探索改用受限廣播：單一 wildcard
+// socket 綁定探索埠並開啟 SO_BROADCAST，全程不需要介面枚舉。
 type lanDiscovery struct {
-	mu         sync.Mutex
-	conn       *net.UDPConn
-	listenConn *net.UDPConn
-	running    bool
+	mu      sync.Mutex
+	conn    *net.UDPConn
+	running bool
 }
 
 // newLanSync 建立 LAN 同步實例（不啟動伺服器）。
@@ -128,45 +132,24 @@ func (ls *lanSync) stop() {
 	ls.devices = map[string]*lanSyncDevice{}
 }
 
-// startDiscovery 啟動 UDP 多播監聽與定期廣播。
+// startDiscovery 啟動 UDP 廣播監聽與定期廣播。
 func (ls *lanSync) startDiscovery() error {
-	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", lanMulticastGroup, lanMulticastPort))
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: lanDiscoveryPort})
 	if err != nil {
 		return err
 	}
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return err
-	}
-	var iface *net.Interface
-	for i := range ifaces {
-		if ifaces[i].Flags&net.FlagMulticast != 0 && ifaces[i].Flags&net.FlagUp != 0 {
-			iface = &ifaces[i]
-			break
-		}
-	}
-	if iface == nil {
-		return errors.New("未找到支援多播的網路介面")
-	}
-	conn, err := net.ListenMulticastUDP("udp4", iface, addr)
-	if err != nil {
-		return err
+	if control, ctrlErr := conn.SyscallConn(); ctrlErr == nil {
+		_ = control.Control(func(fd uintptr) {
+			_ = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_BROADCAST, 1)
+		})
 	}
 	conn.SetReadBuffer(64 * 1024)
-
-	localAddr, _ := net.ResolveUDPAddr("udp4", "0.0.0.0:0")
-	listenConn, err := net.ListenUDP("udp4", localAddr)
-	if err != nil {
-		conn.Close()
-		return err
-	}
-	ls.discovery = &lanDiscovery{conn: conn, listenConn: listenConn, running: true}
+	ls.discovery = &lanDiscovery{conn: conn, running: true}
 
 	go func() {
 		defer guardBackground(ls.engine.downloader, "lan.discovery")
 		defer conn.Close()
-		defer listenConn.Close()
-		buffer := make([]byte, 64 * 1024)
+		buffer := make([]byte, 64*1024)
 		for ls.discovery.isRunning() {
 			conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 			n, remote, err := conn.ReadFromUDP(buffer)
@@ -186,19 +169,19 @@ func (ls *lanSync) startDiscovery() error {
 		defer ticker.Stop()
 		info := ls.localInfo()
 		payload, _ := json.Marshal(map[string]any{
-			"token":  lanDiscoveryToken,
-			"id":     info.ID,
-			"name":   info.Name,
+			"token":   lanDiscoveryToken,
+			"id":      info.ID,
+			"name":    info.Name,
 			"version": info.Version,
-			"port":   info.Port,
+			"port":    info.Port,
 		})
-		dest := &net.UDPAddr{IP: net.ParseIP(lanMulticastGroup), Port: lanMulticastPort}
+		dest := &net.UDPAddr{IP: net.ParseIP(lanBroadcastAddr), Port: lanDiscoveryPort}
 		// 立即發送第一次廣播，不等待 ticker 第一次觸發
-		listenConn.WriteToUDP(payload, dest)
+		conn.WriteToUDP(payload, dest)
 		for ls.discovery.isRunning() {
 			select {
 			case <-ticker.C:
-				listenConn.WriteToUDP(payload, dest)
+				conn.WriteToUDP(payload, dest)
 			}
 		}
 	}()
@@ -220,9 +203,6 @@ func (d *lanDiscovery) stop() {
 	d.running = false
 	if d.conn != nil {
 		_ = d.conn.Close()
-	}
-	if d.listenConn != nil {
-		_ = d.listenConn.Close()
 	}
 }
 
@@ -253,10 +233,10 @@ func (ls *lanSync) handleDiscoveryMessage(data []byte, remote *net.UDPAddr) {
 	defer ls.mu.Unlock()
 	ls.devices[id] = &lanSyncDevice{
 		info: lanDevice{
-			ID:      id,
-			Name:    name,
-			Host:    host,
-			Port:    int(port),
+			ID:   id,
+			Name: name,
+			Host: host,
+			Port: int(port),
 		},
 		expire: time.Now().Add(lanDeviceTTL),
 	}
@@ -605,4 +585,3 @@ func (engine *nativeEngine) deviceName() string {
 	}
 	return hostname
 }
-
