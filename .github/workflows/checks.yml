@@ -40,3 +40,9 @@ jobs:
       - run: flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true
       - run: go test -race ./...
         working-directory: native
+      - name: Run gosec security scan
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          $(go env GOPATH)/bin/gosec -fmt sarav -out gosec.sarif ./native/... || true
+          $(go env GOPATH)/bin/gosec ./native/...
+        working-directory: .
