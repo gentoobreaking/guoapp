@@ -1,12 +1,11 @@
 package core
 
 import (
-	"net/http"
 	"testing"
 )
 
 func TestLanSyncStartStopWithoutInterfaceEnumeration(t *testing.T) {
-	engine := &nativeEngine{downloader: &Downloader{cfg: Config{dataDir: t.TempDir()}}, client: http.DefaultClient}
+	engine := &nativeEngine{downloader: &Downloader{cfg: Config{dataDir: t.TempDir()}}, directory: t.TempDir()}
 	ls := newLanSync(engine)
 	if err := ls.start(); err != nil {
 		t.Fatalf("start = %v", err)
