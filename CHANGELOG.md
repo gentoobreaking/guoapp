@@ -421,3 +421,11 @@
 
 - 在 Flutter 層添加運行時位置權限請求（`permission_handler`）：啟動 LAN 探索前會請求 `ACCESS_FINE_LOCATION` 權限，Android 需要此權限才能列舉網路介面進行多播裝置發現。
 
+## 2.0.2+120
+
+(开发快照，需在客户端实测)
+
+- 修復 LAN 同步 `lanSync.start/stop` 的數據競態（`-race` 檢測到 `httpServer` 並發讀寫），改用局部變數避免競態。
+- Native source list 新增 `version` 欄位，Dart 端 `SourceSite` 讀取模組版本。
+- 模組更新後自動重新載入分類，無需手動清除 App 數據：版本變更時 `force: true` 重新抓取分類；`refresh()` 亦強制重新抓取。
+
