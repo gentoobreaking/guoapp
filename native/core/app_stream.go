@@ -69,7 +69,7 @@ func (stream *nativeStreamServer) lanOrigin(device string) (string, error) {
 	stream.mu.Lock()
 	defer stream.mu.Unlock()
 	if stream.lan == nil {
-		listener, err := net.Listen("tcp4", ":0")
+		listener, err := net.Listen("tcp4", ":0") // #nosec G102: LAN stream server needs to bind all interfaces for local network discovery
 		if err != nil {
 			return "", fmt.Errorf("无法开启局域网投屏服务：%w", err)
 		}

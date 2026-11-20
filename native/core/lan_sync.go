@@ -84,7 +84,7 @@ func (ls *lanSync) start() error {
 		return nil
 	}
 
-	listener, err := net.Listen("tcp4", "0.0.0.0:0")
+	listener, err := net.Listen("tcp4", "0.0.0.0:0") // #nosec G102: LAN sync server needs to bind all interfaces for local network discovery
 	if err != nil {
 		return fmt.Errorf("無法啟動 LAN 同步伺服器：%w", err)
 	}
