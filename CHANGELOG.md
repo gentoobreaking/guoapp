@@ -2,6 +2,16 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+120
+
+### 更新内容
+
+- CI GitHub Actions 全部锁定到具体 commit SHA，避免上游 action 意外变更
+- Android 发布改为手动触发，不再随 Checks 自动出包
+- Go 版本检查由 1.24.1 改为 1.26.0，与 go.mod 一致
+- Worker 接收端 repository 改为 gentoobreaking/guoapp；/v1/ping 新增 IP 限流与可选 Bearer 鉴权；scheduled() 加入 try/catch；wrangler.toml 移除硬编码 database_id
+- 首页发现页新增站源模组更新提示横幅，仅管理员可见，点击跳转至模组页
+
 ## 2.0.0+112
 
 ### 升级说明
