@@ -405,7 +405,8 @@ func (ls *lanSync) importSyncData(data []byte) error {
 	// 讀取現有 users.json。
 	usersData, err := os.ReadFile(usersFile)
 	if err != nil {
-		return fmt.Errorf("無法讀取使用者設定：%w", err)
+		// 如果文件不存在，創建一個空的 users.json
+		usersData = []byte(`{"profiles": [], "active": "", "admin": {}}`)
 	}
 	var usersMap map[string]any
 	if err := json.Unmarshal(usersData, &usersMap); err != nil {
