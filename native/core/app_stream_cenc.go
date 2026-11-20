@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -70,7 +71,11 @@ func (stream *nativeStreamServer) cencLayout(ctx context.Context, session *nativ
 		head := data[position-origin:]
 		size := int64(binary.BigEndian.Uint32(head))
 		if size == 1 {
-			size = int64(binary.BigEndian.Uint64(head[8:]))
+			size64 := binary.BigEndian.Uint64(head[8:])
+			if size64 > math.MaxInt64 {
+				break
+			}
+			size = int64(size64)
 		} else if size == 0 {
 			size = total - position
 		}

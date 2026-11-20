@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 	"errors"
+	"math"
 	"sort"
 )
 
@@ -174,7 +175,11 @@ func cencTrackSamples(moov []byte, track mp4Box) ([]cencSample, error) {
 		}
 		offset := int64(binary.BigEndian.Uint32(offsetRows[chunk*wide:]))
 		if wide == 8 {
-			offset = int64(binary.BigEndian.Uint64(offsetRows[chunk*wide:]))
+			off64 := binary.BigEndian.Uint64(offsetRows[chunk*wide:])
+			if off64 > math.MaxInt64 {
+				return nil, errCENCLayout
+			}
+			offset = int64(off64)
 		}
 		for range binary.BigEndian.Uint32(runRows[run*12+4:]) {
 			if len(samples) == count {
