@@ -12,6 +12,7 @@ class SourceSite {
     this.group = '',
     this.groupLabel = '',
     this.entryLabel = '',
+    this.version = '',
     this.available = true,
     this.pagedSearch = false,
     this.searchSuggestions = false,
@@ -30,6 +31,7 @@ class SourceSite {
     group: json['group'] as String? ?? '',
     groupLabel: json['groupName'] as String? ?? '',
     entryLabel: json['entryName'] as String? ?? '',
+    version: json['version'] as String? ?? '',
     available: json['available'] == true,
     pagedSearch: json['search'] == true,
     searchSuggestions: json['suggestions'] == true,
@@ -47,6 +49,7 @@ class SourceSite {
   final String group;
   final String groupLabel;
   final String entryLabel;
+  final String version;
   final bool available;
   final bool pagedSearch;
   final bool searchSuggestions;

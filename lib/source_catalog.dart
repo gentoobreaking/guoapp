@@ -23,6 +23,14 @@ class SourceCatalog {
   List<RankingBoard> _boards = const [];
   final _library = <String, Drama>{};
 
+  String? _lastModuleVersion;
+
+  bool get shouldReloadCategories {
+    if (_lastModuleVersion == null) return true;
+    if (source.version.isEmpty) return true;
+    return source.version != _lastModuleVersion;
+  }
+
   static const recommendGenre = 'find_drama';
   static const topicPrefix = 'tag:';
 
@@ -54,6 +62,7 @@ class SourceCatalog {
   }
 
   Future<void> loadCategories({bool force = false}) async {
+    if (!force && !shouldReloadCategories) return;
     try {
       remember((await repository.cached(source.id)).items);
     } catch (_) {}
@@ -64,6 +73,7 @@ class SourceCatalog {
       ];
     } catch (_) {}
     _remote = await repository.categories(source.id, force: force);
+    _lastModuleVersion = source.version;
   }
 
   Future<RankingPage> ranking(

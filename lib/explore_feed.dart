@@ -74,15 +74,15 @@ class ExploreFeed extends ChangeNotifier {
   Future<void> refresh() async {
     final catalog = _catalog;
     if (catalog == null) return;
-    if (catalog.categories.length == 1) {
-      unawaited(_loadCategories(catalog, force: true));
-    }
+    unawaited(_loadCategories(catalog, force: true));
     await _feed?.reload(force: true);
   }
 
   void _open() {
     final id = store.source;
-    if (id == _catalog?.source.id) return;
+    if (id == _catalog?.source.id && !_catalog!.shouldReloadCategories) {
+      return;
+    }
     unawaited(repository.cancelCatalog());
     unawaited(repository.cancelRecommendations());
     _dropFeeds();
@@ -92,7 +92,7 @@ class ExploreFeed extends ChangeNotifier {
     }
     final catalog = _catalog = SourceCatalog(repository, SourceSite.byId(id));
     _select(catalog.recommends ? recommendTab : CatalogCategory.all);
-    unawaited(_loadCategories(catalog));
+    unawaited(_loadCategories(catalog, force: true));
   }
 
   Future<void> _loadCategories(
