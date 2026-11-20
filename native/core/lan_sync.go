@@ -101,9 +101,10 @@ func (ls *lanSync) start() error {
 		IdleTimeout:       30 * time.Second,
 		MaxHeaderBytes:    16384,
 	}
+	server := ls.httpServer
 	go func() {
 		defer guardBackground(ls.engine.downloader, "lan.http")
-		_ = ls.httpServer.Serve(listener)
+		_ = server.Serve(listener)
 	}()
 
 	if err := ls.startDiscovery(); err != nil {
@@ -118,16 +119,18 @@ func (ls *lanSync) start() error {
 // stop 停止 LAN 同步伺服器與探索。
 func (ls *lanSync) stop() {
 	ls.mu.Lock()
-	defer ls.mu.Unlock()
 	if ls.discovery != nil {
 		ls.discovery.stop()
 		ls.discovery = nil
 	}
-	if ls.httpServer != nil {
-		_ = ls.httpServer.Close()
-		ls.httpServer = nil
-	}
+	server := ls.httpServer
+	ls.httpServer = nil
 	ls.devices = map[string]*lanSyncDevice{}
+	ls.mu.Unlock()
+
+	if server != nil {
+		_ = server.Close()
+	}
 }
 
 // startDiscovery 啟動 UDP 廣播監聽與定期廣播。
