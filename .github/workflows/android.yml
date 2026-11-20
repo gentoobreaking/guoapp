@@ -44,7 +44,7 @@ jobs:
         with:
           repository: gentoobreaking/video-src
           path: video-src
-          token: ${{ secrets.MODULE_SOURCE_TOKEN }}
+          token: ${{ secrets.MODULE_SOURCE_TOKEN != '' && secrets.MODULE_SOURCE_TOKEN || github.token }}
       - name: Stage Hongguo module
         run: mkdir -p bundled-modules && cp -r video-src/hongguo bundled-modules/hongguo
       - name: Setup Python
