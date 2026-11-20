@@ -144,13 +144,14 @@ func (ls *lanSync) startDiscovery() error {
 		})
 	}
 	conn.SetReadBuffer(64 * 1024)
-	ls.discovery = &lanDiscovery{conn: conn, running: true}
+	discovery := &lanDiscovery{conn: conn, running: true}
+	ls.discovery = discovery
 
 	go func() {
 		defer guardBackground(ls.engine.downloader, "lan.discovery")
 		defer conn.Close()
 		buffer := make([]byte, 64*1024)
-		for ls.discovery.isRunning() {
+		for discovery.isRunning() {
 			conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 			n, remote, err := conn.ReadFromUDP(buffer)
 			if err != nil {
@@ -178,7 +179,7 @@ func (ls *lanSync) startDiscovery() error {
 		dest := &net.UDPAddr{IP: net.ParseIP(lanBroadcastAddr), Port: lanDiscoveryPort}
 		// 立即發送第一次廣播，不等待 ticker 第一次觸發
 		conn.WriteToUDP(payload, dest)
-		for ls.discovery.isRunning() {
+		for discovery.isRunning() {
 			select {
 			case <-ticker.C:
 				conn.WriteToUDP(payload, dest)
