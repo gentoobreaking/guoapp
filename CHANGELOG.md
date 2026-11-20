@@ -8,11 +8,11 @@
 
 - app_device.dart 的 catch (_) 改为记录到 DiaryService，避免静默吞掉错误
 - 新增 Dependabot、CodeQL 和 gosec 安全扫描（GitHub Actions）
-- Go 核心模组治理上限：jsProvider.Close() 在卸载时释放 goja VM；Unregister 自动调用 Close；quickCall 接受 context.Context 并尊重取消；模组返回 JSON 增加 16 MB 大小上限
+- Go 核心模组治理上限：jsProvider.Close() 在卸载时释放 goja VM；Unregister 自动调用 Close；quickCall 接受 context.Context 并尊重取消；模组返回 JSON 增加 16 MB 大小上限（开发快照，需在客户端实测模组卸载、请求取消与超大 JSON 响应）
 - CI GitHub Actions 全部锁定到具体 commit SHA，避免上游 action 意外变更
 - Android 发布改为手动触发，不再随 Checks 自动出包
-- Worker 接收端 repository 改为 gentoobreaking/guoapp；/v1/ping 新增 IP 限流与可选 Bearer 鉴权；scheduled() 加入 try/catch；wrangler.toml 移除硬编码 database_id
-- 首页发现页新增站源模组更新提示横幅，仅管理员可见，点击跳转至模组页
+- Worker 接收端 repository 改为 gentoobreaking/guoapp；/v1/ping 新增 IP 限流与可选 Bearer 鉴权；scheduled() 加入 try/catch；wrangler.toml 移除硬编码 database_id（开发快照，需在 Worker 部署后实测限流与鉴权）
+- 首页发现页新增站源模组更新提示横幅，仅管理员可见，点击跳转至模组页（开发快照，需以管理员账号在客户端打开界面实测）
 - AppRepository 移除所有 no-op/throw 預設實作，僅留抽象簽名；預設行為移至 FakeRepository，避免「忘記實作」在執行期才拋例外
 - 平台判斷集中到 platform_capabilities.dart，遷移 app_scope.dart、app_device.dart、picture_in_picture.dart，避免 Platform.isX 散落各處
 - 補 native/core network_limiter 與 catalog_cache 單元測試（限流、回退、間隔、context 取消、合併去重、遷移、通用分類等）
