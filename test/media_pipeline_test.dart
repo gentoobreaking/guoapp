@@ -118,10 +118,7 @@ void main() {
         ],
         'format': {'duration': '100'},
       });
-      expect(
-        () => verifyMediaDuration(probe, 95),
-        throwsA(isA<AppFailure>()),
-      );
+      expect(() => verifyMediaDuration(probe, 95), throwsA(isA<AppFailure>()));
     });
 
     test('無視訊無音訊時拋出 AppFailure', () {
@@ -129,10 +126,7 @@ void main() {
         'streams': [],
         'format': {'duration': '100'},
       });
-      expect(
-        () => verifyMediaDuration(probe, 100),
-        throwsA(isA<AppFailure>()),
-      );
+      expect(() => verifyMediaDuration(probe, 100), throwsA(isA<AppFailure>()));
     });
 
     test('時長為 0 時拋出 AppFailure', () {
@@ -143,10 +137,7 @@ void main() {
         ],
         'format': {'duration': '0'},
       });
-      expect(
-        () => verifyMediaDuration(probe, 100),
-        throwsA(isA<AppFailure>()),
-      );
+      expect(() => verifyMediaDuration(probe, 100), throwsA(isA<AppFailure>()));
     });
 
     test('時長為負數時拋出 AppFailure', () {
@@ -157,10 +148,7 @@ void main() {
         ],
         'format': {'duration': '-1'},
       });
-      expect(
-        () => verifyMediaDuration(probe, 100),
-        throwsA(isA<AppFailure>()),
-      );
+      expect(() => verifyMediaDuration(probe, 100), throwsA(isA<AppFailure>()));
     });
 
     test('expected 為 0 時不檢查誤差', () {
@@ -181,10 +169,7 @@ void main() {
         ],
         'format': {'duration': 'nan'},
       });
-      expect(
-        () => verifyMediaDuration(probe, 100),
-        throwsA(isA<AppFailure>()),
-      );
+      expect(() => verifyMediaDuration(probe, 100), throwsA(isA<AppFailure>()));
     });
   });
 }

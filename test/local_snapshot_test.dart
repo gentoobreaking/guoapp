@@ -40,50 +40,17 @@ void main() {
     });
 
     test('profile prefixed keys are owned', () {
-      expect(
-        LocalSnapshot.owns('profile.default.history'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.favorites'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.followStates'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.seriesCandidates'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.mediaHistory'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.source'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.hideVip'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.playback'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.downloadPreferences'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.catalogView'),
-        isTrue,
-      );
-      expect(
-        LocalSnapshot.owns('profile.default.recentSearches'),
-        isTrue,
-      );
+      expect(LocalSnapshot.owns('profile.default.history'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.favorites'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.followStates'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.seriesCandidates'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.mediaHistory'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.source'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.hideVip'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.playback'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.downloadPreferences'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.catalogView'), isTrue);
+      expect(LocalSnapshot.owns('profile.default.recentSearches'), isTrue);
     });
 
     test('unknown key is not owned', () {
@@ -118,10 +85,7 @@ void main() {
 
     test('invalid snapshot throws FormatException', () async {
       await prefs!.setString(LocalSnapshot.storageKey, 'invalid');
-      expect(
-        () => LocalSnapshot(prefs!),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => LocalSnapshot(prefs!), throwsA(isA<FormatException>()));
     });
 
     test('snapshot with wrong version throws FormatException', () async {
@@ -129,10 +93,7 @@ void main() {
         LocalSnapshot.storageKey,
         '{"version": 2, "values": {}}',
       );
-      expect(
-        () => LocalSnapshot(prefs!),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => LocalSnapshot(prefs!), throwsA(isA<FormatException>()));
     });
 
     test('snapshot without profiles throws FormatException', () async {
@@ -140,10 +101,7 @@ void main() {
         LocalSnapshot.storageKey,
         '{"version": 1, "values": {"hideVip": true}}',
       );
-      expect(
-        () => LocalSnapshot(prefs!),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => LocalSnapshot(prefs!), throwsA(isA<FormatException>()));
     });
 
     test('retired keys are filtered out', () async {

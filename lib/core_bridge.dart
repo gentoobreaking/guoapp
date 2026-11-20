@@ -72,9 +72,7 @@ abstract class AppRepository {
   final catalogUpdates = CatalogUpdates();
 
   Future<ResourceSettings> resourceSettings();
-  Future<ResourceSettings> saveResourceSettings(
-    ResourceSettings settings,
-  );
+  Future<ResourceSettings> saveResourceSettings(ResourceSettings settings);
   Future<void> cancelPreload();
   Future<PlaybackPlan?> preload(
     Drama drama,
@@ -117,10 +115,7 @@ abstract class AppRepository {
     int page = 1,
     bool force = false,
   });
-  Future<List<CatalogCategory>> categories(
-    String source, {
-    bool force = false,
-  });
+  Future<List<CatalogCategory>> categories(String source, {bool force = false});
   bool get supportsSourceManagement;
   Future<List<SourceModule>> modules();
   Future<ModuleStore> moduleIndex();
@@ -136,9 +131,7 @@ abstract class AppRepository {
   Future<List<String>> suggestions(String source, String query);
   Future<Map<String, dynamic>> storage();
   Future<String> downloadDirectory();
-  Future<({String path, String reason})> moveDownloads(
-    String directory,
-  );
+  Future<({String path, String reason})> moveDownloads(String directory);
   Future<int> workLease(String id, String command);
   Future<int> cacheBytes();
   Future<void> clearCache();

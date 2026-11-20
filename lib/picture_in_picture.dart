@@ -51,8 +51,9 @@ class PictureInPicture extends ChangeNotifier {
   Map<String, Object>? _sent;
   ({Rect bounds, bool maximized, bool fullScreen})? _macRestore;
 
-  bool get available =>
-      PlatformCapabilities.isAndroid ? _supported : PlatformCapabilities.isDesktop;
+  bool get available => PlatformCapabilities.isAndroid
+      ? _supported
+      : PlatformCapabilities.isDesktop;
   bool get shown => _active || _pending || _window;
   bool get leaving => _leaving;
   bool get window => _window;

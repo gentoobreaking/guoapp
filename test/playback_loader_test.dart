@@ -18,13 +18,21 @@ class _StubRepository extends AppRepository {
   int releaseCalls = 0;
 
   @override
-  Future<CatalogPage> catalog(String source, {int page = 1, String query = '', String category = '', bool force = false}) async => throw UnimplementedError();
+  Future<CatalogPage> catalog(
+    String source, {
+    int page = 1,
+    String query = '',
+    String category = '',
+    bool force = false,
+  }) async => throw UnimplementedError();
 
   @override
-  Future<CatalogPage> cached(String source, {String category = ''}) async => throw UnimplementedError();
+  Future<CatalogPage> cached(String source, {String category = ''}) async =>
+      throw UnimplementedError();
 
   @override
-  Future<String> cover(Drama drama, {bool force = false}) async => throw UnimplementedError();
+  Future<String> cover(Drama drama, {bool force = false}) async =>
+      throw UnimplementedError();
 
   @override
   Future<DramaDetail> detail(Drama drama) async => throw UnimplementedError();
@@ -33,12 +41,19 @@ class _StubRepository extends AppRepository {
   Future<void> initialize() async {}
 
   @override
-  Future<PlaybackPlan> resolve(Drama drama, Episode episode, {int quality = 0}) async {
+  Future<PlaybackPlan> resolve(
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+  }) async {
     resolveCalls++;
     if (onResolve != null) {
       return onResolve!(drama, episode, quality: quality);
     }
-    return const PlaybackPlan(url: 'https://example.com/video.mp4', session: 's1');
+    return const PlaybackPlan(
+      url: 'https://example.com/video.mp4',
+      session: 's1',
+    );
   }
 
   @override
@@ -58,19 +73,32 @@ class _StubRepository extends AppRepository {
   Future<ResourceSettings> resourceSettings() async => const ResourceSettings();
 
   @override
-  Future<ResourceSettings> saveResourceSettings(ResourceSettings settings) async => throw UnimplementedError();
+  Future<ResourceSettings> saveResourceSettings(
+    ResourceSettings settings,
+  ) async => throw UnimplementedError();
 
   @override
   Future<void> cancelPreload() async {}
 
   @override
-  Future<PlaybackPlan?> preload(Drama drama, Episode episode, {int quality = 0, bool online = false}) async => null;
+  Future<PlaybackPlan?> preload(
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+    bool online = false,
+  }) async => null;
 
   @override
   Future<List<CastDevice>> castDevices() async => const [];
 
   @override
-  Future<void> castPlay(CastDevice device, Drama drama, Episode episode, {int quality = 0, double position = 0}) async {}
+  Future<void> castPlay(
+    CastDevice device,
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+    double position = 0,
+  }) async {}
 
   @override
   Future<CastStatus> castStatus() async => throw UnimplementedError();
@@ -85,7 +113,11 @@ class _StubRepository extends AppRepository {
   Future<void> cancelDanmaku() async {}
 
   @override
-  Future<DanmakuPage> danmaku(PlaybackPlan plan, {required int startMs, required int durationMs}) async => throw UnimplementedError();
+  Future<DanmakuPage> danmaku(
+    PlaybackPlan plan, {
+    required int startMs,
+    required int durationMs,
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> cancelCatalog() async {}
@@ -106,13 +138,22 @@ class _StubRepository extends AppRepository {
   Future<Drama> followCheck(Drama drama) async => throw UnimplementedError();
 
   @override
-  Future<CatalogPage> recommendations(String source, String genre, {bool more = false, bool force = false}) async => throw UnimplementedError();
+  Future<CatalogPage> recommendations(
+    String source,
+    String genre, {
+    bool more = false,
+    bool force = false,
+  }) async => throw UnimplementedError();
 
   @override
   Future<List<RankingBoard>> rankingBoards() async => const [];
 
   @override
-  Future<RankingPage> rankings(RankingBoard board, {int page = 1, bool force = false}) async => throw UnimplementedError();
+  Future<RankingPage> rankings(
+    RankingBoard board, {
+    int page = 1,
+    bool force = false,
+  }) async => throw UnimplementedError();
 
   @override
   Future<List<CatalogCategory>> categories(
@@ -137,8 +178,7 @@ class _StubRepository extends AppRepository {
     DramaDetail detail,
     List<Episode> episodes, {
     int quality = 0,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> controlDownloads(String command, {String id = ''}) async {}
@@ -147,25 +187,29 @@ class _StubRepository extends AppRepository {
   Future<DownloadBatchResult> controlDownloadBatch(
     String command,
     List<String> ids,
-  ) async =>
-      throw UnimplementedError();
+  ) async => throw UnimplementedError();
 
   @override
   Future<int> updateDownloadCollection(
     DramaDetail detail,
     List<Episode> episodes, {
     int quality = 0,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<ModuleStore> moduleIndex() async => throw UnimplementedError();
 
   @override
-  Future<SourceModule> prepareModule({String file = '', String url = '', String indexed = '', bool bundled = false}) async => throw UnimplementedError();
+  Future<SourceModule> prepareModule({
+    String file = '',
+    String url = '',
+    String indexed = '',
+    bool bundled = false,
+  }) async => throw UnimplementedError();
 
   @override
-  Future<String> installModule(String token) async => throw UnimplementedError();
+  Future<String> installModule(String token) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> uninstallModule(String id) async {}
@@ -174,7 +218,8 @@ class _StubRepository extends AppRepository {
   Map<String, int> missingSourceDownloads() => const {};
 
   @override
-  Future<List<String>> suggestions(String source, String query) async => const [];
+  Future<List<String>> suggestions(String source, String query) async =>
+      const [];
 
   @override
   Future<Map<String, dynamic>> storage() async => {};
@@ -183,7 +228,9 @@ class _StubRepository extends AppRepository {
   Future<String> downloadDirectory() async => '';
 
   @override
-  Future<({String path, String reason})> moveDownloads(String directory) async => throw UnimplementedError();
+  Future<({String path, String reason})> moveDownloads(
+    String directory,
+  ) async => throw UnimplementedError();
 
   @override
   Future<int> workLease(String id, String command) async => 0;
@@ -198,16 +245,22 @@ class _StubRepository extends AppRepository {
   Future<List<String>> deleteAllData() async => throw UnimplementedError();
 
   @override
-  Future<DownloadConversion> beginConversion(String id) async => throw UnimplementedError();
+  Future<DownloadConversion> beginConversion(String id) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> finishConversion(String id, String result) async {}
 
   @override
-  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode) async => null;
+  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode) async =>
+      null;
 
   @override
-  Future<PlaybackPlan> resolveOnline(Drama drama, Episode episode, {int quality = 0}) => resolve(drama, episode, quality: quality);
+  Future<PlaybackPlan> resolveOnline(
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+  }) => resolve(drama, episode, quality: quality);
 
   @override
   Future<AppUpdate?> checkUpdate(String version) async => null;
@@ -216,7 +269,8 @@ class _StubRepository extends AppRepository {
   Future<void> reportUsage(String version) async {}
 
   @override
-  Future<bool> sourceDevices(String source, {bool register = false}) async => true;
+  Future<bool> sourceDevices(String source, {bool register = false}) async =>
+      true;
 
   @override
   Future<SoraniAccount> soraniAccount() async => const SoraniAccount();
@@ -225,7 +279,12 @@ class _StubRepository extends AppRepository {
   Future<SoraniCaptcha> soraniCaptcha() async => throw UnimplementedError();
 
   @override
-  Future<SoraniAccount> soraniLogin({required String identifier, required String password, required String captchaId, required SoraniCaptchaTrack track}) async => throw UnimplementedError();
+  Future<SoraniAccount> soraniLogin({
+    required String identifier,
+    required String password,
+    required String captchaId,
+    required SoraniCaptchaTrack track,
+  }) async => throw UnimplementedError();
 
   @override
   Future<SoraniAccount> soraniLogout() async => const SoraniAccount();
@@ -250,12 +309,12 @@ class _StubRepository extends AppRepository {
 }
 
 Drama testDrama() => const Drama(
-      id: 'hongguo:1',
-      source: 'hongguo',
-      title: 'Test Drama',
-      category: '',
-      episodes: 10,
-    );
+  id: 'hongguo:1',
+  source: 'hongguo',
+  title: 'Test Drama',
+  category: '',
+  episodes: 10,
+);
 
 Episode testEpisode() => Episode({}, 1);
 
@@ -279,7 +338,8 @@ void main() {
 
       // localPlayback 默認返回 null，應該拋出 AppFailure
       expect(
-        () async => await loader.load(testDrama(), testEpisode(), localOnly: true),
+        () async =>
+            await loader.load(testDrama(), testEpisode(), localOnly: true),
         throwsA(isA<AppFailure>()),
       );
     });
@@ -297,7 +357,10 @@ void main() {
     test('fallback calls repository.fallback', () async {
       final repo = _StubRepository();
       final loader = PlaybackLoader(repo);
-      final current = const PlaybackPlan(url: 'https://example.com/video.mp4', session: 's1');
+      final current = const PlaybackPlan(
+        url: 'https://example.com/video.mp4',
+        session: 's1',
+      );
 
       await loader.fallback(current);
 
@@ -307,7 +370,10 @@ void main() {
     test('use returns prepared plan', () async {
       final repo = _StubRepository();
       final loader = PlaybackLoader(repo);
-      final prepared = const PlaybackPlan(url: 'https://example.com/video.mp4', session: 's1');
+      final prepared = const PlaybackPlan(
+        url: 'https://example.com/video.mp4',
+        session: 's1',
+      );
 
       final plan = await loader.use(prepared);
 
@@ -336,7 +402,8 @@ void main() {
 
     test('resolve failure propagates error', () async {
       final repo = _StubRepository()
-        ..onResolve = (_, __, {int? quality}) => Future.error(AppFailure('播放地址获取失败'));
+        ..onResolve = (_, __, {int? quality}) =>
+            Future.error(AppFailure('播放地址获取失败'));
       final loader = PlaybackLoader(repo);
 
       expect(

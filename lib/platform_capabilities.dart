@@ -32,6 +32,5 @@ class PlatformCapabilities {
   static bool get supportsLANSync => isAndroid;
 
   /// 是否支援畫中畫（Android / iOS / 桌面）
-  static bool get supportsPictureInPicture =>
-      isAndroid || isIOS || isDesktop;
+  static bool get supportsPictureInPicture => isAndroid || isIOS || isDesktop;
 }

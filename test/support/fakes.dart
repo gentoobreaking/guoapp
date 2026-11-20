@@ -392,7 +392,8 @@ class FakeRepository extends AppRepository {
   }) async => throw UnimplementedError();
 
   @override
-  Future<String> installModule(String token) async => throw UnimplementedError();
+  Future<String> installModule(String token) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> uninstallModule(String id) async {}
@@ -458,7 +459,8 @@ class FakeRepository extends AppRepository {
   }) => enqueueDownloads(detail, episodes, quality: quality);
 
   @override
-  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode) async => null;
+  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode) async =>
+      null;
 
   @override
   Future<PlaybackPlan> resolveOnline(

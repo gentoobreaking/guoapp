@@ -54,7 +54,8 @@ void main() {
 
     test('fromJson invalid quality throws', () {
       expect(
-        () => DownloadPreferences.fromJson({'quality': 999, 'includeVip': false}),
+        () =>
+            DownloadPreferences.fromJson({'quality': 999, 'includeVip': false}),
         throwsA(isA<FormatException>()),
       );
     });
@@ -68,7 +69,10 @@ void main() {
 
     test('fromJson non-int quality throws', () {
       expect(
-        () => DownloadPreferences.fromJson({'quality': '720', 'includeVip': false}),
+        () => DownloadPreferences.fromJson({
+          'quality': '720',
+          'includeVip': false,
+        }),
         throwsA(isA<FormatException>()),
       );
     });
