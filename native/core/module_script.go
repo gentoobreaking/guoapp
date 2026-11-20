@@ -18,6 +18,7 @@ const (
 	moduleInstanceLimit = 4
 	moduleCallTimeout   = 60 * time.Second
 	moduleQuickTimeout  = 5 * time.Second
+	moduleJSONMaxSize   = 16 * 1024 * 1024 // 16 MB
 )
 
 var moduleInvoker = goja.MustCompile("module-invoker", `(function(exports) {
@@ -178,6 +179,9 @@ func (module *jsModule) provider(host Host) Provider {
 		exclusive: make(chan struct{}, 1), cache: map[string]moduleCacheEntry{},
 		slots: make(chan struct{}, moduleInstanceLimit), idle: make(chan *jsInstance, moduleInstanceLimit)}
 	module.active.Store(p)
+	loadedProviders.Lock()
+	loadedProviders.ids[module.manifest.ID] = p
+	loadedProviders.Unlock()
 	return p
 }
 
@@ -193,6 +197,21 @@ func (module *jsModule) validCategory(category string) bool {
 }
 
 func (p *jsProvider) Descriptor() SourceDescriptor { return p.module.descriptor() }
+
+// Close 釋放該模組常駐的 goja VM 實例，供模組卸載時呼叫。
+func (p *jsProvider) Close() error {
+	p.exclusive <- struct{}{}
+	defer func() { <-p.exclusive }()
+	for {
+		select {
+		case inst := <-p.idle:
+			inst.vm = nil
+			inst.invoke = nil
+		default:
+			return nil
+		}
+	}
+}
 
 func (p *jsProvider) ProvidesCapability(capability reflect.Type) bool {
 	return p.module.capabilities[capability]
@@ -287,7 +306,11 @@ func (p *jsProvider) call(ctx context.Context, function string, result any, argu
 	if err != nil {
 		return moduleError(ctx, err)
 	}
-	return json.Unmarshal([]byte(value.String()), result)
+	jsonStr := value.String()
+	if len(jsonStr) > moduleJSONMaxSize {
+		return fmt.Errorf("模組回傳 JSON 超過 %d 字節上限", moduleJSONMaxSize)
+	}
+	return json.Unmarshal([]byte(jsonStr), result)
 }
 
 func moduleError(ctx context.Context, err error) error {

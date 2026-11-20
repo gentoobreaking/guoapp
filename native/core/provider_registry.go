@@ -183,8 +183,8 @@ var providerRegistry = struct {
 func Unregister(source string) {
 	id := strings.ToLower(strings.TrimSpace(source))
 	providerRegistry.Lock()
-	defer providerRegistry.Unlock()
 	if _, ok := providerRegistry.factories[id]; !ok {
+		providerRegistry.Unlock()
 		return
 	}
 	delete(providerRegistry.factories, id)
@@ -192,6 +192,17 @@ func Unregister(source string) {
 	maps.DeleteFunc(providerRegistry.aliases, func(_, target string) bool { return target == id })
 	providerRegistry.order = slices.DeleteFunc(providerRegistry.order, func(registered string) bool { return registered == id })
 	providerRegistry.revisions[id]++
+	providerRegistry.Unlock()
+
+	// 釋放該站源常駐的 goja VM 實例
+	loadedProviders.Lock()
+	if p, ok := loadedProviders.ids[id]; ok {
+		delete(loadedProviders.ids, id)
+		loadedProviders.Unlock()
+		_ = p.Close()
+		return
+	}
+	loadedProviders.Unlock()
 }
 
 func Register(descriptor SourceDescriptor, factory ProviderFactory) {

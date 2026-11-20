@@ -36,8 +36,11 @@ func moduleRaw(raw json.RawMessage) json.RawMessage {
 	return raw
 }
 
-func (p *jsProvider) quickCall(function string, result any, arguments ...any) error {
-	ctx, cancel := context.WithTimeout(context.Background(), moduleQuickTimeout)
+func (p *jsProvider) quickCall(ctx context.Context, function string, result any, arguments ...any) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(ctx, moduleQuickTimeout)
 	defer cancel()
 	return p.call(ctx, function, result, arguments...)
 }
@@ -49,7 +52,7 @@ func (p *jsProvider) Suggestions(ctx context.Context, query string) ([]string, e
 
 func (p *jsProvider) ValidRecommendation(genre string, cursor json.RawMessage) error {
 	var ignored any
-	return p.quickCall("validRecommendation", &ignored, genre, moduleRaw(cursor))
+	return p.quickCall(context.Background(), "validRecommendation", &ignored, genre, moduleRaw(cursor))
 }
 
 func (p *jsProvider) Recommendations(ctx context.Context, genre string, cursor json.RawMessage, seen []string) (RecommendationPage, error) {
@@ -62,7 +65,7 @@ func (p *jsProvider) Recommendations(ctx context.Context, genre string, cursor j
 
 func (p *jsProvider) DanmakuIDs(task Task) (string, string, bool) {
 	var ids *jsDanmakuIDs
-	if p.quickCall("danmakuIds", &ids, task) != nil || ids == nil || ids.Series == "" || ids.Video == "" {
+	if p.quickCall(context.Background(), "danmakuIds", &ids, task) != nil || ids == nil || ids.Series == "" || ids.Video == "" {
 		return "", "", false
 	}
 	return ids.Series, ids.Video, true
@@ -102,7 +105,7 @@ func (p *jsProvider) CoverAddress(ctx context.Context, drama LibraryDrama, sourc
 
 func (p *jsProvider) NeedsExtraMetadata(drama LibraryDrama) bool {
 	var needed bool
-	return p.quickCall("needsExtraMetadata", &needed, drama) == nil && needed
+	return p.quickCall(context.Background(), "needsExtraMetadata", &needed, drama) == nil && needed
 }
 
 func (p *jsProvider) ExtraMetadata(ctx context.Context, drama LibraryDrama, sourceID string) (LibraryDrama, error) {
@@ -118,7 +121,7 @@ func (p *jsProvider) ExtraMetadata(ctx context.Context, drama LibraryDrama, sour
 
 func (p *jsProvider) CatalogState() json.RawMessage {
 	var state json.RawMessage
-	if p.quickCall("catalogState", &state) != nil || string(state) == "null" {
+	if p.quickCall(context.Background(), "catalogState", &state) != nil || string(state) == "null" {
 		return nil
 	}
 	return state
@@ -126,7 +129,7 @@ func (p *jsProvider) CatalogState() json.RawMessage {
 
 func (p *jsProvider) RestoreCatalogState(raw json.RawMessage) {
 	var ignored any
-	_ = p.quickCall("restoreCatalogState", &ignored, moduleRaw(raw))
+	_ = p.quickCall(context.Background(), "restoreCatalogState", &ignored, moduleRaw(raw))
 }
 
 func (p *jsProvider) AuthorizesMedia(address *url.URL) bool {
@@ -154,5 +157,5 @@ func (p *jsProvider) MediaAuthorization(ctx context.Context, address *url.URL, r
 
 func (p *jsProvider) RejectMediaAuthorization(address *url.URL, value string) {
 	var ignored any
-	_ = p.quickCall("rejectMediaAuthorization", &ignored, address.String(), value)
+	_ = p.quickCall(context.Background(), "rejectMediaAuthorization", &ignored, address.String(), value)
 }

@@ -90,6 +90,12 @@ var loadedModules = struct {
 	ids map[string]bool
 }{ids: map[string]bool{}}
 
+// loadedProviders 記錄每個已註冊站源的 jsProvider 實例，供模組卸載時釋放 goja VM。
+var loadedProviders = struct {
+	sync.Mutex
+	ids map[string]*jsProvider
+}{ids: map[string]*jsProvider{}}
+
 func readModule(directory string) (*jsModule, error) {
 	raw, err := os.ReadFile(filepath.Join(directory, moduleManifest))
 	if err != nil {
