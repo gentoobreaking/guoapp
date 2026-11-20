@@ -14,8 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -140,7 +138,7 @@ func (ls *lanSync) startDiscovery() error {
 	}
 	if control, ctrlErr := conn.SyscallConn(); ctrlErr == nil {
 		_ = control.Control(func(fd uintptr) {
-			_ = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_BROADCAST, 1)
+			_ = setBroadcast(fd)
 		})
 	}
 	conn.SetReadBuffer(64 * 1024)
