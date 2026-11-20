@@ -519,10 +519,8 @@ func (engine *nativeEngine) nativeLan(ctx context.Context, input nativeInput) (a
 		engine.lanSync.stop()
 		return map[string]any{"stopped": true}, nil
 	case "scan":
-		if engine.lanSync.httpServer == nil {
-			if err := engine.lanSync.start(); err != nil {
-				return nil, err
-			}
+		if err := engine.lanSync.start(); err != nil {
+			return nil, err
 		}
 		// 等待一小段時間讓多播發現完成。
 		time.Sleep(lanScanTimeout)
@@ -539,10 +537,8 @@ func (engine *nativeEngine) nativeLan(ctx context.Context, input nativeInput) (a
 		}
 		return map[string]any{"devices": items}, nil
 	case "info":
-		if engine.lanSync.httpServer == nil {
-			if err := engine.lanSync.start(); err != nil {
-				return nil, err
-			}
+		if err := engine.lanSync.start(); err != nil {
+			return nil, err
 		}
 		info := engine.lanSync.localInfo()
 		return map[string]any{
