@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:videoapp/app_update.dart';
 import 'package:videoapp/core_bridge.dart';
+import 'package:videoapp/danmaku_models.dart';
+import 'package:videoapp/download_collections.dart';
 import 'package:videoapp/local_files.dart';
 import 'package:videoapp/local_profiles.dart';
 import 'package:videoapp/local_store.dart';
 import 'package:videoapp/models.dart';
 import 'package:videoapp/ranking_models.dart';
 import 'package:videoapp/resource_settings.dart';
+import 'package:videoapp/sorani_account.dart';
+import 'package:videoapp/source_modules.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -311,4 +316,199 @@ class FakeRepository extends AppRepository {
 
   @override
   Future<void> release(String session) async {}
+
+  @override
+  Future<void> cancelPreload() async {}
+
+  @override
+  Future<PlaybackPlan?> preload(
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+    bool online = false,
+  }) async => null;
+
+  @override
+  Future<List<CastDevice>> castDevices() async => const [];
+
+  @override
+  Future<void> castPlay(
+    CastDevice device,
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+    double position = 0,
+  }) async {}
+
+  @override
+  Future<CastStatus> castStatus() async => throw UnimplementedError();
+
+  @override
+  Future<void> castControl(String command, {double position = 0}) async {}
+
+  @override
+  Future<bool> castActive() async => false;
+
+  @override
+  Future<void> cancelDanmaku() async {}
+
+  @override
+  Future<DanmakuPage> danmaku(
+    PlaybackPlan plan, {
+    required int startMs,
+    required int durationMs,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<void> cancelCatalog() async {}
+
+  @override
+  Future<void> cancelSuggestions() async {}
+
+  @override
+  Future<void> cancelRecommendations() async {}
+
+  @override
+  Future<Drama?> supplementMetadata(Drama drama) async => null;
+
+  @override
+  Future<List<DramaSeason>> seasons(Drama drama) async => const [];
+
+  @override
+  Future<Drama> followCheck(Drama drama) async => (await detail(drama)).drama;
+
+  @override
+  Future<List<SourceModule>> modules() async => const [];
+
+  @override
+  Future<ModuleStore> moduleIndex() async => throw UnimplementedError();
+
+  @override
+  Future<SourceModule> prepareModule({
+    String file = '',
+    String url = '',
+    String indexed = '',
+    bool bundled = false,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<String> installModule(String token) async => throw UnimplementedError();
+
+  @override
+  Future<void> uninstallModule(String id) async {}
+
+  @override
+  Map<String, int> missingSourceDownloads() => const {};
+
+  @override
+  Future<Map<String, dynamic>> storage() async => {};
+
+  @override
+  Future<String> downloadDirectory() async => '';
+
+  @override
+  Future<({String path, String reason})> moveDownloads(
+    String directory,
+  ) async => throw UnimplementedError();
+
+  @override
+  Future<int> workLease(String id, String command) async => 0;
+
+  @override
+  Future<int> cacheBytes() async => 0;
+
+  @override
+  Future<void> clearCache() async {}
+
+  @override
+  Future<List<String>> deleteAllData() async => throw UnimplementedError();
+
+  @override
+  bool get supportsSourceManagement => false;
+
+  @override
+  Future<DownloadBatchResult> controlDownloadBatch(
+    String command,
+    List<String> ids,
+  ) async {
+    final completed = <String>[], failures = <String, String>{};
+    for (final id in ids.toSet()) {
+      try {
+        await controlDownloads(command, id: id);
+        completed.add(id);
+      } catch (error) {
+        failures[id] = error.toString();
+      }
+    }
+    return DownloadBatchResult(completed: completed, failures: failures);
+  }
+
+  @override
+  Future<DownloadConversion> beginConversion(String id) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> finishConversion(String id, String result) async {}
+
+  @override
+  Future<int> updateDownloadCollection(
+    DramaDetail detail,
+    List<Episode> episodes, {
+    int quality = 0,
+  }) => enqueueDownloads(detail, episodes, quality: quality);
+
+  @override
+  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode) async => null;
+
+  @override
+  Future<PlaybackPlan> resolveOnline(
+    Drama drama,
+    Episode episode, {
+    int quality = 0,
+  }) => resolve(drama, episode, quality: quality);
+
+  @override
+  Future<AppUpdate?> checkUpdate(String version) async => null;
+
+  @override
+  Future<void> reportUsage(String version) async {}
+
+  @override
+  Future<bool> sourceDevices(String source, {bool register = false}) async =>
+      true;
+
+  @override
+  Future<SoraniAccount> soraniAccount() async => const SoraniAccount();
+
+  @override
+  Future<SoraniCaptcha> soraniCaptcha() async => throw UnimplementedError();
+
+  @override
+  Future<SoraniAccount> soraniLogin({
+    required String identifier,
+    required String password,
+    required String captchaId,
+    required SoraniCaptchaTrack track,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<SoraniAccount> soraniLogout() async => const SoraniAccount();
+
+  @override
+  Future<void> lanStart() async {}
+
+  @override
+  Future<void> lanStop() async {}
+
+  @override
+  Future<Map<String, dynamic>> lanScan() async => {};
+
+  @override
+  Future<Map<String, dynamic>> lanInfo() async => {};
+
+  @override
+  Future<void> lanSync(String deviceId) async {}
+
+  @override
+  bool coverCached(Drama drama) => false;
 }

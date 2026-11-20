@@ -69,144 +69,122 @@ class AppFailure implements Exception {
 }
 
 abstract class AppRepository {
-  Future<ResourceSettings> resourceSettings() async => const ResourceSettings();
+  final catalogUpdates = CatalogUpdates();
+
+  Future<ResourceSettings> resourceSettings();
   Future<ResourceSettings> saveResourceSettings(
     ResourceSettings settings,
-  ) async => throw AppFailure('当前环境不支持资源设置');
-  final catalogUpdates = CatalogUpdates();
-  Future<void> cancelPreload() async {}
+  );
+  Future<void> cancelPreload();
   Future<PlaybackPlan?> preload(
     Drama drama,
     Episode episode, {
     int quality = 0,
     bool online = false,
-  }) async => null;
-  Future<List<CastDevice>> castDevices() async => throw AppFailure('当前环境不支持投屏');
+  });
+  Future<List<CastDevice>> castDevices();
   Future<void> castPlay(
     CastDevice device,
     Drama drama,
     Episode episode, {
     int quality = 0,
     double position = 0,
-  }) async => throw AppFailure('当前环境不支持投屏');
-  Future<CastStatus> castStatus() async => throw AppFailure('当前环境不支持投屏');
-  Future<void> castControl(String command, {double position = 0}) async {}
-  Future<bool> castActive() async => false;
-  Future<void> cancelDanmaku() async {}
+  });
+  Future<CastStatus> castStatus();
+  Future<void> castControl(String command, {double position = 0});
+  Future<bool> castActive();
+  Future<void> cancelDanmaku();
   Future<DanmakuPage> danmaku(
     PlaybackPlan plan, {
     required int startMs,
     required int durationMs,
-  }) async => throw AppFailure('当前环境不支持弹幕');
-  Future<void> cancelCatalog() async {}
-  Future<void> cancelSuggestions() async {}
-  Future<void> cancelRecommendations() async {}
-  Future<Drama?> supplementMetadata(Drama drama) async => null;
-  Future<List<DramaSeason>> seasons(Drama drama) async => const [];
-  Future<Drama> followCheck(Drama drama) async => (await detail(drama)).drama;
+  });
+  Future<void> cancelCatalog();
+  Future<void> cancelSuggestions();
+  Future<void> cancelRecommendations();
+  Future<Drama?> supplementMetadata(Drama drama);
+  Future<List<DramaSeason>> seasons(Drama drama);
+  Future<Drama> followCheck(Drama drama);
   Future<CatalogPage> recommendations(
     String source,
     String genre, {
     bool more = false,
     bool force = false,
-  }) async => throw AppFailure('当前环境不支持推荐');
-  Future<List<RankingBoard>> rankingBoards() async => const [];
+  });
+  Future<List<RankingBoard>> rankingBoards();
   Future<RankingPage> rankings(
     RankingBoard board, {
     int page = 1,
     bool force = false,
-  }) async => throw AppFailure('当前环境不支持榜单');
+  });
   Future<List<CatalogCategory>> categories(
     String source, {
     bool force = false,
-  }) async => const [CatalogCategory.all];
-  bool get supportsSourceManagement => false;
-  Future<List<SourceModule>> modules() async => const [];
-  Future<ModuleStore> moduleIndex() async => throw AppFailure('当前环境不支持模块商店');
+  });
+  bool get supportsSourceManagement;
+  Future<List<SourceModule>> modules();
+  Future<ModuleStore> moduleIndex();
   Future<SourceModule> prepareModule({
     String file = '',
     String url = '',
     String indexed = '',
     bool bundled = false,
-  }) async => throw AppFailure('当前环境不支持安装模块');
-  Future<String> installModule(String token) async =>
-      throw AppFailure('当前环境不支持安装模块');
-  Future<void> uninstallModule(String id) async =>
-      throw AppFailure('当前环境不支持卸载模块');
-  Map<String, int> missingSourceDownloads() => const {};
-  Future<List<String>> suggestions(String source, String query) async =>
-      const [];
-  Future<Map<String, dynamic>> storage() async => {};
-  Future<String> downloadDirectory() async =>
-      (await storage())['directory'] as String? ?? '';
+  });
+  Future<String> installModule(String token);
+  Future<void> uninstallModule(String id);
+  Map<String, int> missingSourceDownloads();
+  Future<List<String>> suggestions(String source, String query);
+  Future<Map<String, dynamic>> storage();
+  Future<String> downloadDirectory();
   Future<({String path, String reason})> moveDownloads(
     String directory,
-  ) async => throw AppFailure('当前环境不支持迁移');
-  Future<int> workLease(String id, String command) async => 0;
-  Future<int> cacheBytes() async => 0;
-  Future<void> clearCache() async => throw AppFailure('当前环境不支持清理缓存');
-  Future<List<String>> deleteAllData() async => throw AppFailure('当前环境不支持删除数据');
-  bool get supportsDownloads => false;
-  Future<List<DownloadJob>> downloads() async => [];
+  );
+  Future<int> workLease(String id, String command);
+  Future<int> cacheBytes();
+  Future<void> clearCache();
+  Future<List<String>> deleteAllData();
+  bool get supportsDownloads;
+  Future<List<DownloadJob>> downloads();
   Future<int> enqueueDownloads(
     DramaDetail detail,
     List<Episode> episodes, {
     int quality = 0,
-  }) async => throw AppFailure('当前环境不支持下载');
-  Future<void> controlDownloads(String command, {String id = ''}) async {}
-  Future<DownloadConversion> beginConversion(String id) async =>
-      throw AppFailure('当前环境不支持处理下载');
-  Future<void> finishConversion(String id, String result) async {}
+  });
+  Future<void> controlDownloads(String command, {String id = ''});
+  Future<DownloadConversion> beginConversion(String id);
+  Future<void> finishConversion(String id, String result);
   Future<DownloadBatchResult> controlDownloadBatch(
     String command,
     List<String> ids,
-  ) async {
-    final completed = <String>[], failures = <String, String>{};
-    for (final id in ids.toSet()) {
-      try {
-        await controlDownloads(command, id: id);
-        completed.add(id);
-      } catch (error) {
-        failures[id] = error.toString();
-      }
-    }
-    return DownloadBatchResult(completed: completed, failures: failures);
-  }
-
+  );
   Future<int> updateDownloadCollection(
     DramaDetail detail,
     List<Episode> episodes, {
     int quality = 0,
-  }) => enqueueDownloads(detail, episodes, quality: quality);
-  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode) async =>
-      null;
+  });
+  Future<PlaybackPlan?> localPlayback(Drama drama, Episode episode);
   Future<PlaybackPlan> resolveOnline(
     Drama drama,
     Episode episode, {
     int quality = 0,
-  }) => resolve(drama, episode, quality: quality);
-  Future<AppUpdate?> checkUpdate(String version) async => null;
-  Future<void> reportUsage(String version) async {}
-  Future<bool> sourceDevices(String source, {bool register = false}) async =>
-      true;
-  Future<SoraniAccount> soraniAccount() async => const SoraniAccount();
-  Future<SoraniCaptcha> soraniCaptcha() async =>
-      throw AppFailure('当前版本不支持登录青空次元');
+  });
+  Future<AppUpdate?> checkUpdate(String version);
+  Future<void> reportUsage(String version);
+  Future<bool> sourceDevices(String source, {bool register = false});
+  Future<SoraniAccount> soraniAccount();
+  Future<SoraniCaptcha> soraniCaptcha();
   Future<SoraniAccount> soraniLogin({
     required String identifier,
     required String password,
     required String captchaId,
     required SoraniCaptchaTrack track,
-  }) async => throw AppFailure('当前版本不支持登录青空次元');
-  Future<SoraniAccount> soraniLogout() async => const SoraniAccount();
-  Future<void> lanStart() async => throw AppFailure('当前环境不支持 LAN 同步');
-  Future<void> lanStop() async => throw AppFailure('当前环境不支持 LAN 同步');
-  Future<Map<String, dynamic>> lanScan() async =>
-      throw AppFailure('当前环境不支持 LAN 同步');
-  Future<Map<String, dynamic>> lanInfo() async =>
-      throw AppFailure('当前环境不支持 LAN 同步');
-  Future<void> lanSync(String deviceId) async =>
-      throw AppFailure('当前环境不支持 LAN 同步');
+  });
+  Future<SoraniAccount> soraniLogout();
+  Future<void> lanStart();
+  Future<void> lanStop();
+  Future<Map<String, dynamic>> lanScan();
+  Future<Map<String, dynamic>> lanInfo();
+  Future<void> lanSync(String deviceId);
   Future<void> initialize();
   Future<CatalogPage> catalog(
     String source, {
@@ -217,7 +195,7 @@ abstract class AppRepository {
   });
   Future<CatalogPage> cached(String source, {String category = ''});
   Future<String> cover(Drama drama, {bool force = false});
-  bool coverCached(Drama drama) => false;
+  bool coverCached(Drama drama);
   Future<DramaDetail> detail(Drama drama);
   Future<PlaybackPlan> resolve(Drama drama, Episode episode, {int quality = 0});
   Future<PlaybackPlan> fallback(PlaybackPlan current);
