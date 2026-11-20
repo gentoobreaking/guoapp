@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/ecdh"
 	"crypto/hkdf"
-	"crypto/md5"
+	"crypto/md5" // #nosec G501: allowed for HKDF key derivation per RFC 5869
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
