@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'core_bridge.dart';
+import 'diary_service.dart';
 import 'platform_capabilities.dart';
 
 /// 原生侧主动回调（duanju/device 通道）的处理函数签名。
@@ -25,6 +26,7 @@ class AppDevice {
         final info = await PackageInfo.fromPlatform();
         return AppDevice(version: info.version);
       } catch (_) {
+        DiaryService.add('[AppDevice] 裝置偵測失敗，使用 fallback');
         return fallback;
       }
     }
@@ -55,6 +57,7 @@ class AppDevice {
     try {
       return await channel.invokeMethod<bool>('compatibleRendering') ?? false;
     } catch (_) {
+      DiaryService.add('[AppDevice] compatibleRendering 讀取失敗');
       return false;
     }
   }
@@ -101,6 +104,7 @@ class AppDevice {
     try {
       return await channel.invokeMethod<bool>('requestAudioFocus') ?? false;
     } catch (_) {
+      DiaryService.add('[AppDevice] requestAudioFocus 失敗');
       return false;
     }
   }
@@ -121,6 +125,7 @@ class AppDevice {
       });
       return true;
     } catch (_) {
+      DiaryService.add('[AppDevice] setCompatibleRendering 失敗');
       return false;
     }
   }
@@ -135,7 +140,9 @@ class AppDevice {
       await channel.invokeMethod<void>('setTelevisionMode', {
         'enabled': enabled,
       });
-    } catch (_) {}
+    } catch (_) {
+      DiaryService.add('[AppDevice] setTelevisionMode 失敗');
+    }
   }
 
   static Future<void> setPhoneMode(bool enabled) {
@@ -155,7 +162,9 @@ class AppDevice {
         await channel.invokeMethod<void>('setPlayerOrientation', {
           'mode': orientation.name,
         });
-      } catch (_) {}
+      } catch (_) {
+        DiaryService.add('[AppDevice] setPlayerOrientation 失敗');
+      }
       return;
     }
     try {
@@ -171,13 +180,16 @@ class AppDevice {
           const [DeviceOrientation.portraitUp],
         PlayerOrientation.auto => const [],
       });
-    } catch (_) {}
+    } catch (_) {
+      DiaryService.add('[AppDevice] setPreferredOrientations 失敗');
+    }
   }
 
   static Future<double?> brightness() async {
     try {
       return await channel.invokeMethod<double>('getBrightness');
     } catch (_) {
+      DiaryService.add('[AppDevice] getBrightness 失敗');
       return null;
     }
   }
@@ -185,7 +197,9 @@ class AppDevice {
   static Future<void> setBrightness(double value) async {
     try {
       await channel.invokeMethod<void>('setBrightness', {'brightness': value});
-    } catch (_) {}
+    } catch (_) {
+      DiaryService.add('[AppDevice] setBrightness 失敗');
+    }
   }
 
   static Future<void> resetBrightness() async {
@@ -198,6 +212,7 @@ class AppDevice {
     try {
       return await channel.invokeMethod<double>('volume');
     } catch (_) {
+      DiaryService.add('[AppDevice] getVolume 失敗');
       return null;
     }
   }
@@ -205,7 +220,9 @@ class AppDevice {
   static Future<void> setVolume(double value) async {
     try {
       await channel.invokeMethod<void>('setVolume', {'volume': value});
-    } catch (_) {}
+    } catch (_) {
+      DiaryService.add('[AppDevice] setVolume 失敗');
+    }
   }
 
   static Future<String?> createDocument(String name, String mimeType) async {
@@ -246,7 +263,9 @@ class AppDevice {
   static Future<void> deleteDocument(String uri) async {
     try {
       await channel.invokeMethod<bool>('deleteDocument', {'uri': uri});
-    } catch (_) {}
+    } catch (_) {
+      DiaryService.add('[AppDevice] deleteDocument 失敗');
+    }
   }
 
   static Future<({int level, bool charging})?> battery() async {
@@ -256,6 +275,7 @@ class AppDevice {
       if (level is! int) return null;
       return (level: level, charging: data?['charging'] == true);
     } catch (_) {
+      DiaryService.add('[AppDevice] battery 讀取失敗');
       return null;
     }
   }
