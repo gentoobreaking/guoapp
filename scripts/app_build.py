@@ -42,6 +42,9 @@ class AppBuild:
         index_urls = os.environ.get('MODULE_INDEX_URLS', '').strip()
         if index_urls:
             flags += ' -X duanjuapp/native/core.nativeModuleIndex=' + index_urls
+        index_token = os.environ.get('MODULE_INDEX_TOKEN', '').strip()
+        if index_token:
+            flags += ' -X duanjuapp/native/core.nativeModuleIndexToken=' + index_token
         return flags
 
 

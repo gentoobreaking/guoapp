@@ -173,3 +173,74 @@ func TestModuleIndexMonorepoSubpathAndCustomAddresses(t *testing.T) {
 		t.Fatal("expected root path attempts before subpath fallback")
 	}
 }
+
+type moduleAuthTransport struct{ target string }
+
+func (t moduleAuthTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	request.URL.Scheme = "http"
+	request.URL.Host = strings.TrimPrefix(t.target, "http://")
+	return http.DefaultTransport.RoundTrip(request)
+}
+
+func TestModuleIndexTokenAuth(t *testing.T) {
+	const token = "token-123"
+	var mainAuth, mirrorAuth atomic.Value
+	var mirror *httptest.Server
+	main := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		mainAuth.Store(request.Header.Get("Authorization"))
+		if request.URL.Path == "/redirect" {
+			http.Redirect(writer, request, mirror.URL+"/mirror-file", http.StatusFound)
+			return
+		}
+		_, _ = writer.Write([]byte("content"))
+	}))
+	t.Cleanup(main.Close)
+	mirror = httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		mirrorAuth.Store(request.Header.Get("Authorization"))
+		_, _ = writer.Write([]byte("mirror"))
+	}))
+	t.Cleanup(mirror.Close)
+
+	previous := nativeModuleIndexToken
+	nativeModuleIndexToken = token
+	t.Cleanup(func() { nativeModuleIndexToken = previous })
+
+	engine := &nativeEngine{downloader: &Downloader{
+		cfg:    Config{dataDir: t.TempDir()},
+		client: &http.Client{Transport: moduleAuthTransport{target: main.URL}},
+	}}
+	ctx := context.Background()
+
+	if _, err := engine.fetchLimited(ctx, "https://github.com/owner/repo/releases/download/v1.0.0/m.zip", 1024); err != nil {
+		t.Fatal(err)
+	}
+	if mainAuth.Load() != "Bearer "+token {
+		t.Fatalf("github.com 認證頭 = %v", mainAuth.Load())
+	}
+	if _, err := engine.fetchLimited(ctx, "https://raw.githubusercontent.com/owner/repo/main/index.json", 1024); err != nil {
+		t.Fatal(err)
+	}
+	if mainAuth.Load() != "Bearer "+token {
+		t.Fatalf("raw 認證頭 = %v", mainAuth.Load())
+	}
+	if _, err := engine.fetchLimited(ctx, "https://cdn.jsdelivr.net/gh/owner/repo@main/index.json", 1024); err != nil {
+		t.Fatal(err)
+	}
+	if mainAuth.Load() == "Bearer "+token {
+		t.Fatal("非 GitHub host 不應攜帶 token")
+	}
+	if _, err := engine.fetchLimited(ctx, "https://github.com/owner/repo/releases/download/v1.0.0/redirect", 1024); err != nil {
+		t.Fatal(err)
+	}
+	if mirrorAuth.Load() == "Bearer "+token {
+		t.Fatal("跨 host redirect 不應攜帶 token")
+	}
+
+	nativeModuleIndexToken = ""
+	if _, err := engine.fetchLimited(ctx, "https://github.com/owner/repo/main/index.json", 1024); err != nil {
+		t.Fatal(err)
+	}
+	if mainAuth.Load() == "Bearer "+token {
+		t.Fatal("未配置 token 時不應攜帶認證頭")
+	}
+}

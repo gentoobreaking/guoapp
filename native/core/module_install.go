@@ -211,6 +211,9 @@ func (engine *nativeEngine) fetchLimited(ctx context.Context, address string, li
 	if err != nil {
 		return nil, err
 	}
+	if token := strings.TrimSpace(nativeModuleIndexToken); token != "" && moduleIndexAuthHosts[request.URL.Host] {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 	response, err := engine.downloader.client.Do(request)
 	if err != nil {
 		return nil, err

@@ -22,6 +22,16 @@ const (
 
 var nativeModuleIndex = ""
 
+var nativeModuleIndexToken = ""
+
+// moduleIndexAuthHosts 限定模块索引与安装包的 token 认证只用于 GitHub 请求；
+// 其他 host（含 release 转址的 objects.githubusercontent.com）绝不携带凭据。
+var moduleIndexAuthHosts = map[string]bool{
+	"github.com":                true,
+	"raw.githubusercontent.com": true,
+	"api.github.com":            true,
+}
+
 var (
 	moduleIndexAddresses = []string{
 		"https://raw.githubusercontent.com/guoapp-modules/index/main/index.json",
