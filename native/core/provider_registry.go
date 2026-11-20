@@ -16,6 +16,7 @@ type SourceDescriptor struct {
 	ID                 string
 	Name               string
 	Description        string
+	Version            string
 	Group              string
 	GroupName          string
 	EntryName          string

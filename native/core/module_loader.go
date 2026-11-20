@@ -170,6 +170,7 @@ func (module *jsModule) descriptor() SourceDescriptor {
 		rankings = append(rankings, RankingBoard{ID: ranking.ID, Source: module.manifest.ID, Name: ranking.Name, Description: ranking.Description})
 	}
 	return SourceDescriptor{
+		Version:           module.manifest.Version,
 		Rankings:          rankings,
 		ID:                module.manifest.ID,
 		Name:              module.manifest.Name,
