@@ -207,8 +207,8 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 | P1-2 | `AppRepository` no-op 移至 `FakeRepository` | 小 | §4.7 | ✅ 已完成（`AppRepository` 僅留抽象簽名，所有 no-op/throw 預設實作移至 `FakeRepository`） |
 | P1-3 | 平台判斷集中 `platform_capabilities.dart` | 小 | §4.8 | ✅ 已完成（新增 `lib/platform_capabilities.dart`，遷移 `app_scope.dart`、`app_device.dart`、`picture_in_picture.dart`） |
 | P1-4 | 刪除殘餘 `'lan'` action 權限豁免 | 極小 | §4.9 | ✅ 已完成（從 `_call` 的 `unrestricted` 集合中移除 `'lan'`，區網同步現在需先解鎖用戶） |
-| P2-1 | 補 `native/bridge` 與 `native/core` 重災區測試（下載、catalog cache、stream server、DNS/CDN） | 中 | §4.10 | ⚠️ 部分完成（已補 `network_limiter.go` 7 個測試、`app_catalog_cache.go` 純函數 8 個測試；`app_downloads.go`、`app_stream.go`、`network_dns.go`、`network_cdn.go` 仍為零測試） |
-| P2-2 | 補 Dart 缺席模組測試（`playback_loader`/`playback_recovery`/`media_pipeline`/`local_snapshot`/`portable_data`/`background_downloads`/`download_preferences`/`cover_decoder`） | 中 | §4.10 | ⚠️ 部分完成（已補 `download_preferences`、`playback_recovery`、`local_snapshot`、`playback_loader` 4 個模組測試；`media_pipeline`、`local_snapshot`、`portable_data`、`background_downloads`、`cover_decoder` 仍缺測試） |
+| P2-1 | 補 `native/bridge` 與 `native/core` 重災區測試（下載、catalog cache、stream server、DNS/CDN） | 中 | §4.10 | ⚠️ 部分完成（已補 `network_limiter.go` 7 個測試、`app_catalog_cache.go` 8 個測試、`app_downloads.go` 2 個測試、`app_stream.go` 3 個測試；`network_dns.go`、`network_cdn.go` 仍為零測試） |
+| P2-2 | 補 Dart 缺席模組測試（`playback_loader`/`playback_recovery`/`media_pipeline`/`local_snapshot`/`portable_data`/`background_downloads`/`download_preferences`/`cover_decoder`） | 中 | §4.10 | ⚠️ 部分完成（已補 `download_preferences`、`playback_recovery`、`local_snapshot`、`playback_loader`、`media_pipeline` 5 個模組測試；`portable_data`、`background_downloads`、`cover_decoder` 仍缺測試） |
 | P2-3 | 模組安裝鏈安全：僅 https、索引簽名、`Folder` traversal 檢查、`deleteAllData` 目錄歸屬檢查 | 中 | §4.11 | ⬜ 待處理 |
 | P2-4 | Go 核心其餘：direct client Timeout、`http.Client` 按值複製、快取淘汰、DNS 快取上限、硬寫金鑰、SOAPACTION、LAN 串流鑑權、錯誤脫屑 | 中 | §4.12 | ⬜ 待處理 |
 | P3-1 | 修三本 README 設定組數（8→9）、DEVELOPMENT.md Go 版本 drift | 極小 | §4.13、§4.14 | ✅ 已完成（README 已為 9 組；`DEVELOPMENT.md` 已為 `Go 1.26.0+`；`scripts/build_native.py`、`scripts/build_ios.py` 已改為 `1.26.0`） |
