@@ -426,6 +426,8 @@
 (开发快照，需在客户端实测)
 
 - 修復 LAN 同步 `lanSync.start/stop` 的數據競態（`-race` 檢測到 `httpServer` 並發讀寫），改用局部變數避免競態。
+- 修復 LAN 探索在 Android 11+ 無法啟動（系統禁用 netlink 介面枚舉），改用 UDP 廣播發現，不再依賴多播。
+- 區網同步設定僅在 Android 顯示：其他平台缺少定位權限描述，掃描必定失敗。
 - Native source list 新增 `version` 欄位，Dart 端 `SourceSite` 讀取模組版本。
 - 模組更新後自動重新載入分類，無需手動清除 App 數據：版本變更時 `force: true` 重新抓取分類；`refresh()` 亦強制重新抓取。
 
