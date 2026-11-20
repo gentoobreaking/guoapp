@@ -202,7 +202,7 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 | P0-1 | CI 新增 `pull_request` 觸發器；CHANGELOG 缺失就 fail | 極小 | §4.1 | ✅ 已完成（`checks.yml` 已有 `pull_request` 觸發器；`prepare.yml` CHANGELOG 缺失即 `fail`；兩個 `flutter test` 已移除 `continue-on-error`） |
 | P0-2 | 補齊 `packages/PATCHES.md` 三個 fork 包補丁紀錄 | 小 | §4.2 | ✅ 已完成 |
 | P0-3 | Go 核心全庫鎖內 I/O 移出鎖之外 | 中 | §4.3 | ⬜ 待處理（風險中高，需先補測試） |
-| P0-4 | goja VM 卸載釋放、`quickCall` 尊重取消、模組 JSON 大小上限 | 小 | §4.4 | ⬜ 待處理 |
+| P0-4 | goja VM 卸載釋放、`quickCall` 尊重取消、模組 JSON 大小上限 | 小 | §4.4 | ✅ 已完成（`jsProvider.Close()` 釋放 VM，`Unregister` 調用 `Close()`；`quickCall` 接受 `ctx` 參數；模組回傳 JSON 加 16 MB 上限） |
 | P1-1 | `LocalStore` 拆分細分 Notifier，頁面資料組裝抽 `*_feed`/`*_state` | 中 | §4.5、§4.6 | ⬜ 待處理 |
 | P1-2 | `AppRepository` no-op 移至 `FakeRepository` | 小 | §4.7 | ✅ 已完成（`AppRepository` 僅留抽象簽名，所有 no-op/throw 預設實作移至 `FakeRepository`） |
 | P1-3 | 平台判斷集中 `platform_capabilities.dart` | 小 | §4.8 | ✅ 已完成（新增 `lib/platform_capabilities.dart`，遷移 `app_scope.dart`、`app_device.dart`、`picture_in_picture.dart`） |
@@ -214,7 +214,7 @@ Cloudflare Worker `/v1/ping` 無限流無鑑權（D1 寫入可被灌）；`sched
 | P3-1 | 修三本 README 設定組數（8→9）、DEVELOPMENT.md Go 版本 drift | 極小 | §4.13、§4.14 | ✅ 已完成（README 已為 9 組；`DEVELOPMENT.md` 已為 `Go 1.26.0+`；`scripts/build_native.py`、`scripts/build_ios.py` 已改為 `1.26.0`） |
 | P3-2 | Worker `/v1/ping` 限流/鑑權、`scheduled()` try/catch、`database_id` 秘密化、`repository` 改本 fork | 小 | §4.14 | ✅ 已完成（`repository` 已改為 `gentoobreaking/guoapp`；`/v1/ping` 新增 IP 速率限制 10 次/分鐘與可選 `PING_TOKEN` Bearer 鑑權；`scheduled()` 加入 try/catch；`wrangler.toml` 移除硬寫 `database_id`） |
 | P3-3 | Android release 開 minify/shrink、`namespace` 與 `applicationId` 同步、移除 `GeneratedPluginRegistrant` hack | 小 | §4.15 | ⬜ 待處理 |
-| P3-4 | `catch (_) {}` 丟進 `DiaryService`；CI SHA 釘版 actions、加 Dependabot/CodeQL/gosec | 小 | §4.16、§4.17 | ⚠️ 部分完成（CI SHA 已釘定：checkout v4.4.0、setup-go v5.6.0、flutter-action v2.23.0、setup-python v5.6.0、setup-java v5.7.0、setup-android v3.2.2、upload-artifact v4.6.2、download-artifact v4.3.0；`catch (_) {}`、`Dependabot`、`CodeQL`、`gosec` 仍待處理） |
+| P3-4 | `catch (_) {}` 丟進 `DiaryService`；CI SHA 釘版 actions、加 Dependabot/CodeQL/gosec | 小 | §4.16、§4.17 | ⚠️ 部分完成（CI SHA 已釘定；Dependabot/CodeQL/gosec 已新增；`catch (_) {}` 已處理 `app_device.dart`，其餘檔案仍待處理） |
 
 ## 七、結論
 
