@@ -108,7 +108,7 @@ func nativeCopyTree(ctx context.Context, source, target string) error {
 		if entry.IsDir() {
 			return os.MkdirAll(destination, 0700)
 		}
-		input, err := os.Open(path)
+		input, err := os.Open(path) // #nosec G122: path is validated by filepath.Walk and checked for symlinks above
 		if err != nil {
 			return err
 		}
